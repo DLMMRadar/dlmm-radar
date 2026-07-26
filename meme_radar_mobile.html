@@ -1,0 +1,2822 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#07090f">
+<title>Meme Radar — DLMM Edition (Mobile)</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;background:#07090f;color:#c9d8f0;min-height:100vh;padding-bottom:64px}
+/* Header */
+.mhead{position:sticky;top:0;z-index:50;background:#0e1628;border-bottom:1px solid #1e3050;padding:10px 14px}
+.mhead-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.logo{font-size:15px;font-weight:800;color:#7ee8a2;letter-spacing:1px;flex:1}
+.envb{font-size:9px;padding:2px 7px;border-radius:4px;font-weight:700;border:1px solid}
+.env-local{color:#4ade80;background:#16a34a20;border-color:#16a34a60}
+.env-iframe{color:#f87171;background:#dc262620;border-color:#dc262660}
+.mscan-btn{font-family:inherit;font-size:14px;font-weight:700;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;flex-shrink:0}
+.btn.go,.mscan-btn.go{background:#16a34a;color:#fff}
+.btn.stop,.mscan-btn.stop{background:#dc2626;color:#fff}
+.mstat{font-size:11px;color:#7a90b0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.mstat .ok{color:#22c55e}.mstat .warn{color:#f59e0b}.mstat .err{color:#f87171}
+.pulse{width:7px;height:7px;border-radius:50%;background:#2a3f60;flex-shrink:0}
+.pulse.live{background:#22c55e;animation:blink 1.4s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+/* Tabs */
+.mtabs{display:flex;background:#0e1628;border-bottom:1px solid #1e3050;position:sticky;top:0;z-index:40}
+.mtab{flex:1;font-family:inherit;font-size:12px;font-weight:600;padding:11px 4px;border:none;border-bottom:2px solid transparent;background:transparent;color:#7a90b0;cursor:pointer;text-align:center}
+.mtab.on{color:#c9d8f0;border-bottom-color:#7ee8a2}
+.mtab .cnt{display:block;font-size:10px;color:#4a5568;margin-top:2px}
+.mtab.on .cnt{color:#7ee8a2}
+/* Controls bar */
+.mctrl{padding:8px 14px;background:#0b1220;border-bottom:1px solid #1e3050;display:flex;flex-direction:column;gap:8px}
+.mctrl-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.minp{flex:1;min-width:120px;font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid #2a3f60;border-radius:8px;background:#0e1628;color:#c9d8f0}
+.minp::placeholder{color:#3a5070}
+.msel{font-family:inherit;font-size:12px;padding:7px 8px;border:1px solid #2a3f60;border-radius:8px;background:#0e1628;color:#c9d8f0}
+.mtog{font-family:inherit;font-size:11px;padding:6px 10px;border:1px solid #2a3f60;border-radius:8px;background:#0e1628;color:#7a90b0;cursor:pointer;white-space:nowrap}
+.mtog.on{border-color:#fde68a;color:#fde68a}
+.mlbl{font-size:11px;color:#7a90b0;white-space:nowrap}
+/* Token cards */
+.cards{padding:10px;display:flex;flex-direction:column;gap:10px}
+.card{background:#0e1628;border:1px solid #1e3050;border-radius:12px;padding:12px;cursor:pointer;position:relative;transition:border-color .1s}
+.card:active{border-color:#4a7aaa}
+.card.dlmm{border-left:3px solid #fde68a}
+.card-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+.card-sym{font-size:16px;font-weight:800;color:#e8eeff;line-height:1.1}
+.card-name{font-size:11px;color:#6a80a0;margin-top:1px}
+.card-score{margin-left:auto;flex-shrink:0;text-align:center}
+.card-score .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:14px;font-weight:800}
+.p78{background:#16a34a25;color:#4ade80;border:1px solid #16a34a60}
+.p56{background:#0369a125;color:#7ab8f5;border:1px solid #0369a160}
+.p34{background:#f59e0b25;color:#fbbf24;border:1px solid #f59e0b60}
+.p01{background:#dc262625;color:#f87171;border:1px solid #dc262660}
+/* Card metrics grid */
+.card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 6px;margin-bottom:8px}
+.cm{display:flex;flex-direction:column;gap:1px}
+.cm-l{font-size:9px;color:#6a80a0;text-transform:uppercase;letter-spacing:.3px}
+.cm-v{font-size:13px;font-weight:700;color:#c9d8f0}
+.up{color:#4ade80}.dn{color:#f87171}
+.ratio-ok{color:#4ade80}.ratio-mid{color:#fbbf24}.ratio-bad{color:#f87171}
+.hld-ok{color:#4ade80}.hld-low{color:#f87171}
+.vel-pos{color:#4ade80}.vel-neg{color:#f87171}.vel-neu{color:#6a80a0}
+.dlmm-y{color:#fde68a;font-weight:800}.dlmm-n{color:#3a5070}
+/* Risk + badges row */
+.card-badges{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.risk-badge{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.risk-lo{background:#16a34a25;color:#4ade80;border:1px solid #16a34a60}
+.risk-mid{background:#f59e0b25;color:#fbbf24;border:1px solid #f59e0b60}
+.risk-hi{background:#dc262630;color:#f87171;border:1px solid #dc262670}
+.badge-dlmm{font-size:10px;padding:2px 7px;border-radius:6px;background:#92400e25;color:#fde68a;border:1px solid #92400e50;font-weight:700}
+.badge-boost{font-size:10px;padding:2px 7px;border-radius:6px;background:#f59e0b20;color:#fbbf24;border:1px solid #f59e0b50;font-weight:700}
+.badge-dump{font-size:10px;padding:2px 7px;border-radius:6px;background:#dc262625;color:#f87171;border:1px solid #dc262660;font-weight:700}
+/* Dots */
+.dots{display:flex;gap:3px;flex-wrap:wrap}
+.d{width:16px;height:16px;border-radius:3px;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.dy{background:#16a34a30;color:#4ade80;border:1px solid #16a34a50}
+.dn2{background:#dc262630;color:#f87171;border:1px solid #dc262650}
+.du{background:#1e2d45;color:#3a5070;border:1px solid #2a3f60}
+/* Card actions */
+.card-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid #131e30}
+.ca-btn{flex:1;font-family:inherit;font-size:12px;font-weight:600;padding:8px;border-radius:8px;border:1px solid #2a3f60;background:#0b1220;color:#8aa8cc;text-align:center;text-decoration:none;cursor:pointer}
+.ca-btn:active{background:#142040}
+.ca-gmgn{color:#a78bfa;border-color:#7c3aed50}
+.ca-pin{color:#fbbf24;border-color:#fbbf2440}
+.ca-pin.pinned{background:#fbbf2415}
+/* Empty state */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:10px;color:#3a5070;text-align:center}
+.empty .ic{font-size:42px}
+/* Detail sheet (bottom drawer) */
+.sheet-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100}
+.sheet-bg.open{display:block}
+.sheet{position:fixed;bottom:0;left:0;right:0;max-height:88vh;background:#0e1628;border-top:1px solid #1e3050;border-radius:16px 16px 0 0;z-index:101;transform:translateY(100%);transition:transform .25s;overflow-y:auto}
+.sheet.open{transform:translateY(0)}
+.sheet-handle{width:40px;height:4px;background:#2a3f60;border-radius:2px;margin:10px auto 4px}
+.sheet-head{padding:6px 16px 12px;border-bottom:1px solid #131e30;display:flex;align-items:flex-start;gap:10px;position:sticky;top:0;background:#0e1628;z-index:2}
+.sheet-sym{font-size:20px;font-weight:800;color:#e8eeff}
+.sheet-name{font-size:12px;color:#6a80a0;margin-top:2px}
+.sheet-x{margin-left:auto;background:#1e2d45;border:none;color:#c9d8f0;width:30px;height:30px;border-radius:8px;font-size:18px;cursor:pointer;flex-shrink:0}
+.sheet-sec{padding:12px 16px;border-bottom:1px solid #131e30}
+.sheet-sh{font-size:10px;color:#7a90b0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:700}
+.sheet-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;gap:10px}
+.sheet-row .k{color:#7a90b0;flex-shrink:0}
+.sheet-row .v{color:#c9d8f0;font-weight:600;text-align:right;word-break:break-word}
+.dev-sold{color:#f87171;font-weight:700}.dev-holds{color:#4ade80;font-weight:700}.dev-unk{color:#7a90b0}
+.sheet-crit{display:flex;flex-direction:column;gap:5px}
+.scr{display:flex;align-items:center;gap:8px;font-size:13px}
+.sheet-big{text-align:center;padding:6px 0}
+.sheet-big .n{font-size:32px;font-weight:800;line-height:1}
+.sheet-big .l{font-size:11px;color:#6a80a0;margin-top:2px}
+.sheet-links{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:12px 16px}
+.sl-btn{padding:10px;text-align:center;border:1px solid #2a3f60;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;color:#8aa8cc;background:#0b1220}
+.sl-btn:active{background:#142040}
+.copy-addr-btn{width:100%;padding:9px;font-family:inherit;font-size:12px;border:1px solid #2a3f60;border-radius:8px;background:#0b1220;color:#7ee8a2;cursor:pointer;margin-top:8px}
+.copy-addr-btn.copied{border-color:#4ade80;color:#4ade80}
+/* Settings panel */
+.settings{padding:14px;display:flex;flex-direction:column;gap:14px}
+.set-card{background:#0e1628;border:1px solid #1e3050;border-radius:12px;padding:14px}
+.set-title{font-size:12px;font-weight:700;color:#7ee8a2;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.set-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.set-row:last-child{margin-bottom:0}
+.helius-inp{flex:1;min-width:160px;font-family:monospace;font-size:12px;padding:8px;border:1px solid #2a3f60;border-radius:8px;background:#0b1220;color:#c9d8f0}
+.helius-inp.valid{border-color:#16a34a60;color:#4ade80}
+.set-btn{font-family:inherit;font-size:12px;font-weight:600;padding:8px 14px;border:1px solid #2a3f60;border-radius:8px;background:#0b1220;color:#8aa8cc;cursor:pointer}
+.set-btn.save{border-color:#16a34a60;color:#4ade80}
+.helius-tag{font-size:10px;padding:3px 8px;border-radius:5px;font-weight:700;border:1px solid}
+.htag-ok{color:#4ade80;background:#16a34a20;border-color:#16a34a50}
+.htag-no{color:#f59e0b;background:#92400e20;border-color:#92400e50}
+.hlink{font-size:12px;color:#7ab8f5;text-decoration:none}
+.crit-toggle{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;border:1px solid #2a3f60;background:#0b1220;cursor:pointer;font-size:12px;color:#7a90b0;margin-bottom:6px}
+.crit-toggle.active{border-color:var(--bc,#16a34a40);background:var(--bg,#16a34a15);color:var(--col,#4ade80)}
+.crit-cb{width:18px;height:18px;border-radius:4px;border:1.5px solid #3a5070;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.crit-toggle.active .crit-cb{border-color:var(--col,#4ade80);color:var(--col,#4ade80)}
+.range-row{display:flex;align-items:center;gap:10px}
+.range-row input[type=range]{flex:1;accent-color:#7ee8a2}
+/* Manual */
+.manual{padding:14px;display:flex;flex-direction:column;gap:10px}
+.mr-out{background:#0b1220;border:1px solid #1e3050;border-radius:10px;padding:12px;white-space:pre-wrap;font-family:monospace;font-size:11px;color:#8aa8cc;line-height:1.7;min-height:120px;overflow-x:auto}
+/* Bottom nav (alt access) */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:#1e3050;color:#4ade80;border:1px solid #4ade8060;border-radius:8px;padding:8px 18px;font-size:13px;opacity:0;transition:all .2s;z-index:200;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:150;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#0e1628;border-top:1px solid #1e3050;border-radius:16px 16px 0 0;padding:18px;width:100%;max-height:80vh;overflow-y:auto}
+.modal textarea{width:100%;height:120px;font-family:monospace;font-size:12px;background:#0b1220;border:1px solid #2a3f60;border-radius:8px;color:#c9d8f0;padding:10px;resize:vertical}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<!-- Header -->
+<div class="mhead">
+  <div class="mhead-top">
+    <span class="logo">⚡ MEME RADAR <span style="color:#fde68a;font-size:.7em">DLMM</span></span>
+    <span class="envb env-local" id="envTag">● LOCAL</span>
+    <button class="mscan-btn go" id="mb" onclick="toggleScan()">▶ Scanner</button>
+  </div>
+  <div class="mstat">
+    <span class="pulse" id="pulse"></span>
+    <span id="sm" class="ok">Prêt</span>
+    <span id="apiHealth" style="display:flex;align-items:center;gap:1px;margin-left:auto"></span>
+    <span id="scd" style="display:none">⏱ <span id="cdn">45</span>s</span>
+  </div>
+</div>
+
+<!-- Hidden compat elements (engine expects these IDs) -->
+<div class="hidden">
+  <span id="bannerOk"></span><span id="bannerWarn"></span><span id="emTxt"></span>
+  <span id="sc2"></span><span id="sa2"></span><span id="thr">6</span>
+  <span id="dlmmFirstBtn"></span>
+</div>
+
+<!-- Tabs -->
+<div class="mtabs">
+  <button class="mtab on" id="tab-live" onclick="msw('live')">📡 Live<span class="cnt" id="cl">(0)</span></button>
+  <button class="mtab" id="tab-alerts" onclick="msw('alerts')">🔔 Alertes<span class="cnt" id="ca">(0)</span></button>
+  <button class="mtab" id="tab-watch" onclick="msw('watch')">📌 Suivi<span class="cnt" id="cw">(0)</span></button>
+  <button class="mtab" id="tab-manual" onclick="msw('manual')">🔍 Manuel<span class="cnt">&nbsp;</span></button>
+  <button class="mtab" id="tab-settings" onclick="msw('settings')">⚙️ Réglages<span class="cnt">&nbsp;</span></button>
+</div>
+
+<!-- Controls (live only) -->
+<div class="mctrl" id="liveCtrl">
+  <input class="minp" id="filterInp" placeholder="🔍 Filtrer (symbole, nom, adresse)" oninput="applyFilter()"/>
+  <div class="mctrl-row">
+    <span class="mlbl">Âge:</span>
+    <select class="msel" id="minAge" onchange="applyFilter()">
+      <option value="0">min: tout</option><option value="5">≥5m</option><option value="15">≥15m</option>
+      <option value="30" selected>≥30m</option><option value="60">≥1h</option><option value="120">≥2h</option>
+    </select>
+    <select class="msel" id="maxAge" onchange="setMaxAge(this.value)">
+      <option value="24" selected>max: 24h</option><option value="48">48h</option>
+      <option value="72">72h</option><option value="168">7j</option>
+    </select>
+    <select class="msel" id="maxRatio" onchange="applyFilter()">
+      <option value="0">M/L: tout</option><option value="5">≤5×</option>
+      <option value="10" selected>≤10×</option><option value="20">≤20×</option><option value="50">≤50×</option>
+    </select>
+  </div>
+  <div class="mctrl-row">
+    <select class="msel" id="sortSel" onchange="setMobileSort(this.value)">
+      <option value="total">Tri: Score</option>
+      <option value="hVel">Vélocité holders</option>
+      <option value="risk">Risque (croissant)</option>
+      <option value="mcap">Market Cap</option>
+      <option value="holderCount">Holders</option>
+      <option value="age">Âge</option>
+    </select>
+    <button class="mtog" id="dlmmOnlyBtn" onclick="toggleDlmmOnly()">🟡 DLMM only</button>
+    <button class="mtog" onclick="openForceModal()">📌 Suivi <span id="forceCount"></span></button>
+  </div>
+</div>
+
+<!-- Live panel -->
+<div id="p-live">
+  <div class="empty" id="liveEmpty"><span class="ic">📡</span><span>Lance le scanner pour démarrer</span></div>
+  <div class="cards hidden" id="liveCards"></div>
+</div>
+
+<!-- Alerts panel -->
+<div id="p-alerts" class="hidden">
+  <div class="empty" id="alertsEmpty"><span class="ic">🔔</span><span>Aucune alerte — seuil ≥ <span id="thr2">6</span>/12</span></div>
+  <div class="cards hidden" id="alertsCards"></div>
+</div>
+
+<!-- Watch panel -->
+<div id="p-watch" class="hidden">
+  <div class="empty" id="watchEmpty"><span class="ic">📌</span><span>Aucun token suivi<br><span style="font-size:11px;color:#3a5070">Épingle des tokens depuis l'onglet Live</span></span></div>
+  <div class="cards hidden" id="watchCards"></div>
+</div>
+
+<!-- Manual panel -->
+<div id="p-manual" class="hidden">
+  <div class="manual">
+    <input class="minp" id="adi" placeholder="Colle une adresse mint Solana"/>
+    <button class="set-btn save" id="ab" onclick="doManual()" style="width:100%;padding:11px">🔍 Analyser ce token</button>
+    <div class="mr-out" id="mr">Le résultat apparaîtra ici…</div>
+  </div>
+</div>
+
+<!-- Settings panel -->
+<div id="p-settings" class="hidden">
+  <div class="settings">
+    <div class="set-card">
+      <div class="set-title">⚡ Clé API Helius</div>
+      <div class="set-row"><span class="helius-tag htag-no" id="heliusTag">⚡ Helius</span><span id="heliusStatus" style="font-size:11px;color:#6a80a0"></span></div>
+      <div class="set-row"><input class="helius-inp" id="heliusKey" type="password" placeholder="Clé UUID ou URL RPC" oninput="onHeliusInput(this.value)"/></div>
+      <div class="set-row">
+        <button class="set-btn save" onclick="saveHeliusKey()">💾 Enregistrer</button>
+        <button class="set-btn" onclick="clearHeliusKey()">✕ Effacer</button>
+        <a class="hlink" href="https://dashboard.helius.dev" target="_blank">Clé gratuite ↗</a>
+      </div>
+    </div>
+    <div class="set-card">
+      <div class="set-title">🔔 Alertes</div>
+      <div class="set-row">
+        <span class="mlbl">Seuil ≥</span>
+        <select class="msel" id="ms" onchange="setMinScore(+this.value)">
+          <option value="4">4/12</option><option value="5">5/12</option>
+          <option value="6" selected>6/12</option><option value="7">7/12</option><option value="8">8/12</option><option value="9">9/12</option><option value="10">10/12</option>
+        </select>
+      </div>
+      <div class="set-row">
+        <span class="mlbl">Holders ≥</span>
+        <select class="msel" id="minHolders" onchange="setMinHolders(this.value)">
+          <option value="100">100</option><option value="300">300</option><option value="500">500</option>
+          <option value="850" selected>850</option><option value="1500">1500</option><option value="3000">3000</option>
+        </select>
+      </div>
+      <div class="set-row">
+        <span class="mlbl">Scan toutes les</span>
+        <select class="msel" id="scanInt" onchange="setScanInterval(+this.value)">
+          <option value="30">30s</option><option value="45" selected>45s</option>
+          <option value="60">1min</option><option value="120">2min</option><option value="300">5min</option>
+        </select>
+      </div>
+      <div class="set-row">
+        <button class="set-btn" id="notifBtn" onclick="requestNotif()" style="width:100%">🔔 Activer les notifications</button>
+      </div>
+      <p style="font-size:10px;color:#6a80a0;line-height:1.4;margin-top:4px">Reçois une notification même quand l'app est en arrière-plan. Ajoute le site à ton écran d'accueil pour de meilleurs résultats.</p>
+    </div>
+    <div class="set-card">
+      <div class="set-title">⚙ Configuration</div>
+      <div class="set-row" style="gap:8px">
+        <button class="set-btn" onclick="exportConfig()" style="flex:1">⬇ Exporter</button>
+        <label class="set-btn" style="flex:1;text-align:center;cursor:pointer">⬆ Importer<input type="file" accept=".json" style="display:none" onchange="importConfig(this)"></label>
+      </div>
+      <p style="font-size:10px;color:#6a80a0;line-height:1.4;margin-top:6px">Réglages, watchlist, suivi manuel et clé Helius — pour transférer entre desktop et mobile.</p>
+    </div>
+    <div class="set-card">
+      <div class="set-title">📡 À propos</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+        <a href="https://x.com/DLMMRadar" target="_blank" style="color:#7ab8f5;text-decoration:none;font-size:12px">𝕏 @DLMMRadar</a>
+        <a href="https://github.com/DLMMRadar/dlmm-radar" target="_blank" style="color:#a78bfa;text-decoration:none;font-size:12px">GitHub ↗</a>
+      </div>
+      <p style="font-size:10px;color:#6a80a0;line-height:1.5;margin-top:6px">Dons SOL : <span style="font-family:monospace;color:#c9d8f0;word-break:break-all" onclick="copyAddr('Em5aKcZ6VvmFnYmAcUDCodkoiBokGGSYabhFRwh9rb3A',this)">Em5aKcZ6VvmFnYmAcUDCodkoiBokGGSYabhFRwh9rb3A 📋</span></p>
+      <p style="font-size:10px;color:#6a80a0;line-height:1.5;margin-top:4px">Pas un conseil financier — l'outil trie, vous décidez.</p>
+    </div>
+    <div class="set-card">
+      <div class="set-title">✓ Critères actifs (<span id="activeCritCount">12</span>/12)</div>
+      <div class="set-row" style="gap:6px">
+        <button class="set-btn" onclick="toggleAllCrit(true)">✓ Tout</button>
+        <button class="set-btn" onclick="toggleAllCrit(false)">✗ Min</button>
+      </div>
+      <div id="critGrid" style="margin-top:8px"></div>
+    </div>
+    <div class="set-card">
+      <div class="set-title">⚠️ Devs fichés & KOLs <span id="riskyCount" style="color:#f87171"></span></div>
+      <p style="font-size:10px;color:#6a80a0;line-height:1.4;margin-bottom:8px">Listes perso fusionnées avec les listes intégrées, pour les critères « Dev non fiché » et « Pas un tribute token ».</p>
+      <button class="set-btn" onclick="openRiskyModal()" style="width:100%">✏️ Modifier les listes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail bottom sheet -->
+<div class="sheet-bg" id="sheetBg" onclick="closeD()"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <div>
+      <div class="sheet-sym" id="dsy">—</div>
+      <div class="sheet-name" id="dn2">—</div>
+    </div>
+    <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+      <div style="display:flex;gap:8px">
+        <button class="sheet-x" id="dRefreshBtn" style="margin-left:0;font-size:14px" title="Rafraîchir maintenant (auto toutes les 15 s)" onclick="refreshDet(true)">🔄</button>
+        <button class="sheet-x" style="margin-left:0" onclick="closeD()">×</button>
+      </div>
+      <span id="dRefreshInfo" style="font-size:8px;color:#4a5d80"></span>
+    </div>
+  </div>
+  <div id="sheetBody"></div>
+</div>
+
+<!-- Force-track modal -->
+<div class="modal-bg" id="riskyModal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="color:#f87171;font-weight:700">⚠️ Devs fichés & KOLs</span>
+      <button class="sheet-x" onclick="closeRiskyModal()">×</button>
+    </div>
+    <p style="font-size:11px;color:#7a90b0;margin-bottom:6px;line-height:1.5"><strong>Dev wallets fichés</strong> — un par ligne, format <code>adresse = étiquette</code> (étiquette optionnelle).</p>
+    <textarea id="riskyDevList" placeholder="yHCxHBEa... = Supermanonchain" style="height:80px"></textarea>
+    <p style="font-size:11px;color:#7a90b0;margin:10px 0 6px;line-height:1.5"><strong>Noms de KOLs</strong> (détection tribute) — un par ligne.</p>
+    <textarea id="kolList" placeholder="NOUVEAUKOL" style="height:60px"></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="set-btn" onclick="closeRiskyModal()" style="flex:1">Annuler</button>
+      <button class="set-btn save" onclick="saveRiskyLists()" style="flex:1">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="forceModal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="color:#7ee8a2;font-weight:700">📌 Suivi manuel</span>
+      <button class="sheet-x" onclick="closeForceModal()">×</button>
+    </div>
+    <p style="font-size:12px;color:#7a90b0;margin-bottom:10px;line-height:1.5">Adresses toujours scannées, même hors sources auto. Une par ligne.</p>
+    <textarea id="forceList" placeholder="adresse mint..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="set-btn" onclick="closeForceModal()" style="flex:1">Annuler</button>
+      <button class="set-btn save" onclick="saveForceList()" style="flex:1">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">📋 Copié !</div>
+
+<script>
+
+
+// ── Criteria ──────────────────────────────────────────────────────────────────
+const CR=[
+  {id:'no_mint',    lbl:'Pas de mint authority',        col:'#4ade80', bg:'#16a34a15',bc:'#16a34a40'},
+  {id:'no_freeze',  lbl:'Pas de freeze authority',      col:'#60a5fa', bg:'#3b82f615',bc:'#3b82f640'},
+  {id:'no_bundle',  lbl:'Dev propre / no bundle',       col:'#a78bfa', bg:'#7c3aed15',bc:'#7c3aed40'},
+  {id:'lp_locked',  lbl:'LP locked / burnée',           col:'#fb923c', bg:'#c2410c15',bc:'#c2410c40'},
+  {id:'h_up',       lbl:'Holders en croissance',        col:'#4ade80', bg:'#16a34a15',bc:'#16a34a40'},
+  {id:'m_up',       lbl:'Market cap en hausse',         col:'#93c5fd', bg:'#1d4ed815',bc:'#1d4ed840'},
+  {id:'dist_ok',    lbl:'Top 10 holders < 30%',         col:'#f9a8d4', bg:'#be185d15',bc:'#be185d40'},
+  {id:'has_dlmm',   lbl:'Pool DLMM Meteora active',     col:'#fde68a', bg:'#92400e15',bc:'#92400e40'},
+  {id:'holders_min',lbl:'≥ 850 holders au total',       col:'#86efac', bg:'#15803d15',bc:'#15803d40'},
+  {id:'dev_holds',  lbl:'Dev n\'a pas vendu',             col:'#f0abfc', bg:'#a21caf15',bc:'#a21caf50'},
+  {id:'dev_clean',  lbl:'Dev non fiché',                 col:'#fca5a5', bg:'#b91c1c15',bc:'#b91c1c50'},
+  {id:'not_tribute',lbl:'Pas un tribute token',          col:'#fdba74', bg:'#c2410c15',bc:'#c2410c50'},
+];
+
+// ── Dev wallets fichés (serial deployers, tribute tokens…) ──────────────────
+const RISKY_DEV_WALLETS={
+  'yHCxHBEaJW5tbndqC8JciSThr7U1cqLpdcsvHcx6PRe':'Supermanonchain ($ANSEM/$TJR)',
+};
+let userRiskyDevs={};
+try{userRiskyDevs=JSON.parse(localStorage.getItem('meme_risky_devs')||'{}');}catch{userRiskyDevs={};}
+function riskyDevLabel(addr){
+  if(!addr)return null;
+  return RISKY_DEV_WALLETS[addr]||userRiskyDevs[addr]||null;
+}
+
+// ── Noms de KOLs souvent utilisés pour des tribute tokens ───────────────────
+const KOL_NAMES=['ANSEM','BLKNOIZ','TJR','WYNN','JAMESWYNN','GAINZY','GCR','HSAKA','COBIE','ZACHXBT','MURAD','FAZE','TATE','PORTNOY','CUPSEY','ORANGIE','SOLJAKEY','MITCHELL','KEYBOARD'];
+let userKols=[];
+try{userKols=JSON.parse(localStorage.getItem('meme_kol_names')||'[]');}catch{userKols=[];}
+function detectTributeToken(name,symbol){
+  const n=(name||'').toUpperCase(), sym=(symbol||'').toUpperCase();
+  const words=n.split(/[^A-Z0-9]+/).filter(Boolean); // mots entiers du nom
+  for(const kol of [...KOL_NAMES,...userKols]){
+    if(sym===kol||words.includes(kol))return kol;
+  }
+  return null;
+}
+// Set of enabled criteria ids (all active by default)
+let activeCrit=new Set(CR.map(c=>c.id));
+
+function calcTotal(scores){
+  return CR.filter(c=>activeCrit.has(c.id)&&scores[c.id]===true).length;
+}
+function maxScore(){return activeCrit.size;}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let ENV='unknown';
+let scanning=false, snd=true, volume=0.8, minScore=6;
+let tokens=[], alerts=[], sel=null, alerted=new Set();
+// Historique par mint : {ts, mcap, holderCount, vol1h, price, buys, sells}
+let history=JSON.parse(localStorage.getItem('meme_history')||'{}');
+// Cache RugCheck/Helius : {mint: {ts, data}}
+let rugCache={}, holderCache={}, devCache={};
+let heliusOwners={}; // owners uniques par mint (source Helius, pour le calcul phishing)
+let heliusFloor={}; // true si le comptage a été plafonné (early-stop / limite de pages)
+let holderSrc={}; // source du comptage holders par mint : Helius / RugCheck / Solscan
+let jupCache={}, geckoCache={}, goplusCache={}; // caches enrichissement (TTL 5 min)
+let tickerCache={}; // cache recherche tickers par symbole (TTL 15 min)
+let minHolders=850; // seuil configurable du critère ⑨ holders_min
+let geckoInfoCache={}; // cache liens sociaux GeckoTerminal (TTL 15 min)
+let xComCache={}; // cache abonnés 𝕏 par handle (TTL 15 min)
+const CACHE_TTL=5*60*1000; // 5 minutes
+let scanT=null, cdT=null, cdV=45, SCAN_INT=45;
+let scanCycle=0, lastTotals={}; // scan adaptatif
+let sortCol='total', sortDir=-1; // -1 = desc
+let filterText='', filterMinAge=30, filterMaxRatio=10;
+let dlmmFirst=false;
+let dlmmOnly=false;
+let maxAgeH=24; // seuil d'âge maximum en heures (24, 48, 72, 168)
+let forceAddresses=new Set(JSON.parse(localStorage.getItem('meme_force')||'[]'));
+
+function openForceModal(){
+  document.getElementById('forceList').value=[...forceAddresses].join('\n');
+  document.getElementById('forceModal').style.display='flex';
+}
+function closeForceModal(){document.getElementById('forceModal').style.display='none';}
+
+// ── Suivi de position (prix d'achat / PnL) ────────────────────────────────────
+let positions={};
+try{positions=JSON.parse(localStorage.getItem('meme_positions')||'{}');}catch{positions={};}
+function savePositions(){try{localStorage.setItem('meme_positions',JSON.stringify(positions));}catch{}}
+function posPnl(t){
+  const p=positions[t.address];if(!p||!p.buy)return null;
+  const cur=parseFloat(t.priceUsd);if(!cur||!isFinite(cur))return null;
+  return (cur-p.buy)/p.buy*100;
+}
+function savePosition(){
+  if(!sel)return;
+  const t=tokens.find(x=>x.address===sel)||alerts.find(x=>x.address===sel)||window._manualTok;if(!t)return;
+  const buy=parseFloat(String(document.getElementById('dPosBuyIn').value).replace(',','.'));
+  if(!buy||!isFinite(buy)||buy<=0){alert('Prix d\'achat invalide');return;}
+  const solV=parseFloat(String(document.getElementById('dPosSolIn').value).replace(',','.'));
+  positions[sel]={buy,sol:(solV&&isFinite(solV)&&solV>0)?solV:null,ts:Date.now()};
+  savePositions();
+  if(!watchlist.has(sel)){watchlist.add(sel);localStorage.setItem('meme_watchlist',JSON.stringify([...watchlist]));}
+  selT(sel);
+  if(curTab==='watch')renderWatch();else render();
+}
+function clearPosition(){
+  if(!sel||!positions[sel])return;
+  delete positions[sel];savePositions();
+  selT(sel);
+  if(curTab==='watch')renderWatch();else render();
+}
+
+// ── Modal devs fichés & KOLs ──────────────────────────────────────────────────
+function openRiskyModal(){
+  document.getElementById('riskyDevList').value=Object.entries(userRiskyDevs).map(([a,l])=>l?a+' = '+l:a).join('\n');
+  document.getElementById('kolList').value=userKols.join('\n');
+  document.getElementById('riskyModal').style.display='flex';
+}
+function closeRiskyModal(){document.getElementById('riskyModal').style.display='none';}
+function saveRiskyLists(){
+  // Devs : "adresse = étiquette" ou juste "adresse" — adresses brutes, jamais masquées
+  const devs={};
+  document.getElementById('riskyDevList').value.split('\n').forEach(line=>{
+    const [addr,...rest]=line.split('=');
+    const a=(addr||'').trim();
+    if(a.length>=32&&a.length<=44&&!a.includes('…'))devs[a]=rest.join('=').trim()||'fiché (liste perso)';
+  });
+  userRiskyDevs=devs;
+  localStorage.setItem('meme_risky_devs',JSON.stringify(devs));
+  userKols=document.getElementById('kolList').value.split(/[\n,;]+/).map(x=>x.trim().toUpperCase()).filter(x=>x.length>=2);
+  localStorage.setItem('meme_kol_names',JSON.stringify(userKols));
+  updateRiskyCount();
+  closeRiskyModal();
+  // Recalcul immédiat sur les tokens déjà scannés (sans refetch)
+  tokens=tokens.map(t=>{
+    const riskyDev=riskyDevLabel(t.devAddr);
+    const tributeKol=detectTributeToken(t.name,t.symbol);
+    const scores={...t.scores,
+      dev_clean:t.devAddr?!riskyDev:t.scores.dev_clean,
+      not_tribute:(t.name||t.symbol)?!tributeKol:t.scores.not_tribute};
+    return {...t,riskyDev,tributeKol,scores,total:calcTotal(scores)};
+  }).sort((a,b)=>b.total-a.total);
+  if(typeof curTab!=='undefined'&&curTab==='watch')renderWatch();else render();
+}
+function updateRiskyCount(){
+  const el=document.getElementById('riskyCount');
+  const n=Object.keys(userRiskyDevs).length+userKols.length;
+  if(el)el.textContent=n?`(+${n})`:'';
+}
+function saveForceList(){
+  const raw=document.getElementById('forceList').value;
+  const addrs=raw.split(/[\n,;\s]+/).map(s=>s.trim()).filter(s=>s.length>=32&&s.length<=44);
+  forceAddresses=new Set(addrs);
+  localStorage.setItem('meme_force',JSON.stringify([...forceAddresses]));
+  updateForceCount();
+  closeForceModal();
+  if(scanning)runScan(); // relancer un scan immédiatement
+}
+function updateForceCount(){
+  const el=document.getElementById('forceCount');
+  if(el)el.textContent=forceAddresses.size?`(${forceAddresses.size})`:'';
+  const btn=document.getElementById('forceBtn');
+  if(btn){btn.style.borderColor=forceAddresses.size?'#fde68a':'';btn.style.color=forceAddresses.size?'#fde68a':'';}
+}
+function setMaxAge(v){
+  maxAgeH=parseInt(v)||24;
+  const lbl=document.querySelector('.bar .lbl');
+  const txt=maxAgeH>=168?'7j':maxAgeH+'h';
+  if(lbl)lbl.textContent=`Solana · <${txt} · 12 critères`;
+}
+function toggleDlmmOnly(){
+  dlmmOnly=!dlmmOnly;
+  const btn=document.getElementById('dlmmOnlyBtn');
+  if(dlmmOnly){btn.style.borderColor='#fde68a';btn.style.color='#fde68a';btn.textContent='🟡 DLMM uniquement ✓';}
+  else{btn.style.borderColor='';btn.style.color='';btn.textContent='🟡 DLMM uniquement';}
+  render();
+}
+let watchlist=new Set(JSON.parse(localStorage.getItem('meme_watchlist')||'[]'));
+let watchTokens=[];
+
+// Persist alerts across reloads
+function saveAlerts(){try{localStorage.setItem('meme_alerts',JSON.stringify(alerts.slice(0,50)));}catch{}}
+function loadAlerts(){try{const a=JSON.parse(localStorage.getItem('meme_alerts')||'[]');alerts=a;renderAlerts();upd();}catch{}}
+
+// ── Historique & vélocité ─────────────────────────────────────────────────────
+function pushHistory(mint, snap){
+  if(!history[mint])history[mint]=[];
+  history[mint].push(snap);
+  // Garder max 30 points (~30 cycles), purger > 2h
+  const cutoff=Date.now()-7200000;
+  history[mint]=history[mint].filter(p=>p.ts>cutoff).slice(-30);
+}
+function saveHistory(){
+  try{
+    // Purger les mints sans activité récente avant sauvegarde
+    const cutoff=Date.now()-7200000;
+    for(const m in history){
+      history[m]=history[m].filter(p=>p.ts>cutoff);
+      if(!history[m].length)delete history[m];
+    }
+    localStorage.setItem('meme_history',JSON.stringify(history));
+  }catch{}
+}
+// Vélocité holders : nouveaux holders par minute
+function holderVelocity(mint, currentCount, now){
+  const h=history[mint];
+  if(!h||!h.length||currentCount==null)return null;
+  // Prendre le point valide le plus ancien dans la fenêtre (pour un calcul plus stable)
+  const valid=h.filter(p=>p.holderCount!=null&&p.ts<now-20000);
+  if(!valid.length)return null;
+  const past=valid[0]; // le plus ancien point valide
+  const dtMin=(now-past.ts)/60000;
+  if(dtMin<=0.3)return null; // au moins 20s d'écart
+  return (currentCount-past.holderCount)/dtMin;
+}
+// Vélocité volume : ratio accélération
+function volVelocity(mint, currentVol1h, now){
+  const h=history[mint];
+  if(!h||!h.length||!currentVol1h)return null;
+  const valid=h.filter(p=>p.vol1h!=null&&p.ts<now-20000);
+  if(!valid.length)return null;
+  const past=valid[0];
+  if(!past.vol1h)return null;
+  return currentVol1h/past.vol1h;
+}
+// Détection dump : prix chute + sells dominent
+function dumpSignal(tok){
+  if((tok.chg1h||0)<-15&&(tok.sells1h||0)>(tok.buys1h||0)*1.5)return 'strong';
+  if((tok.chg1h||0)<-8&&(tok.sells1h||0)>(tok.buys1h||0))return 'mild';
+  return null;
+}
+
+function toggleDlmmFirst(){
+  dlmmFirst=!dlmmFirst;
+  const btn=document.getElementById('dlmmFirstBtn');
+  if(dlmmFirst){
+    btn.style.borderColor='#fde68a';btn.style.color='#fde68a';
+    btn.textContent='🟡 DLMM en tête ✓';
+  }else{
+    btn.style.borderColor='';btn.style.color='';
+    btn.textContent='🟡 DLMM en tête';
+  }
+  render();
+}
+
+// Sort — avec priorité DLMM optionnelle
+function sorted(arr){
+  return [...arr].sort((a,b)=>{
+    // Si DLMM en tête activé : les tokens DLMM passent avant les autres
+    if(dlmmFirst){
+      const da=a.hasDLMM===true?1:0;
+      const db=b.hasDLMM===true?1:0;
+      if(da!==db)return db-da; // DLMM=true en premier
+    }
+    let va=a[sortCol],vb=b[sortCol];
+    if(va==null)va=sortDir===-1?-Infinity:Infinity;
+    if(vb==null)vb=sortDir===-1?-Infinity:Infinity;
+    return sortDir*(vb-va);
+  });
+}
+
+// Filter
+function applyFilter(){
+  filterText=document.getElementById('filterInp').value.trim().toLowerCase();
+  filterMinAge=+document.getElementById('minAge').value;
+  filterMaxRatio=+document.getElementById('maxRatio').value;
+  render();
+}
+function filtered(arr){
+  return arr.filter(t=>{
+    const prot=watchlist.has(t.address)||forceAddresses.has(t.address);
+    if(dlmmOnly&&t.hasDLMM!==true)return false;
+    if(filterText&&!t.symbol.toLowerCase().includes(filterText)&&!t.name.toLowerCase().includes(filterText)&&!t.address.toLowerCase().includes(filterText))return false;
+    // Les tokens protégés (watchlist/suivi manuel) ignorent les filtres âge/ratio
+    if(prot)return true;
+    if(filterMinAge>0&&t.age<filterMinAge*60000)return false;
+    if(filterMaxRatio>0&&t.mcap&&t.liquidity&&(t.mcap/t.liquidity)>filterMaxRatio)return false;
+    return true;
+  });
+}
+
+// Sparkline SVG (uses chg5m, h1, h6, h24 as 4 data points)
+function sparkline(tok){
+  const hist=(history[tok.address]||[]).filter(p=>p.price!=null&&p.price>0);
+  let pts, real=false;
+  if(hist.length>=3){pts=hist.map(p=>p.price);real=true;}
+  else{
+    pts=[tok.chg24h,tok.chg6h,tok.chg1h||0].filter(v=>v!=null);
+    if(pts.length<2)return `<span style="color:#3a5070;font-size:10px">—</span>`;
+  }
+  const min=Math.min(...pts),max=Math.max(...pts),range=max-min||1;
+  const w=36,h=14;
+  const xs=pts.map((_,i)=>Math.round(i/(pts.length-1)*w));
+  const ys=pts.map(v=>Math.round(h-(v-min)/range*h));
+  const col=real
+    ?(pts[pts.length-1]>=pts[0]?'#4ade80':'#f87171')
+    :((tok.chg1h||0)>5?'#4ade80':(tok.chg1h||0)<-5?'#f87171':'#7ab8f5');
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${xs.map((x,i)=>x+','+ys[i]).join(' ')}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+// MCap/Liq ratio
+function ratioFmt(tok){
+  if(!tok.mcap||!tok.liquidity)return'—';
+  const r=tok.mcap/tok.liquidity;
+  const cls=r<5?'ratio-ok':r<10?'ratio-mid':'ratio-bad';
+  return`<span class="${cls}">${r.toFixed(1)}×</span>`;
+}
+
+// Watchlist
+
+
+
+// Export HTML (s'ouvre directement dans le navigateur, pas besoin d'Excel)
+
+
+// ── Formatters ────────────────────────────────────────────────────────────────
+const fn=(n,p='$')=>{if(n==null||isNaN(+n))return'—';const x=+n;return x>=1e9?p+(x/1e9).toFixed(2)+'B':x>=1e6?p+(x/1e6).toFixed(2)+'M':x>=1e3?p+(x/1e3).toFixed(1)+'K':p+(+x).toFixed(2)};
+const fa=ms=>{const m=Math.floor(ms/60000);return m<1?'<1m':m<60?m+'m':Math.floor(m/60)+'h'+(m%60?' '+m%60+'m':'')};
+const fp=n=>n==null?'—':(n>0?'+':'')+n.toFixed(1)+'%';
+const fpr=p=>{if(!p)return'—';const n=parseFloat(p);return isNaN(n)?'—':n<.000001?'$'+n.toFixed(10):n<.001?'$'+n.toFixed(8):n<1?'$'+n.toFixed(6):'$'+n.toFixed(4)};
+const pc=n=>n>=7?'p78':n>=5?'p56':n>=3?'p34':'p01';
+const fc=n=>n>=7?'#4ade80':n>=5?'#60a5fa':n>=3?'#fbbf24':'#f87171';
+const hc=p=>p==null?'':p<20?'h-ok':p<30?'h-mid':'h-bad';
+const fmtH=n=>n==null?'—':n>=1000?(n/1000).toFixed(1)+'K':String(n);
+const esc=s=>{const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;};
+const cleanAddr=s=>(s||'').trim().replace(/\s+/g,'');
+const validAddr=s=>s.length>=32&&s.length<=44&&/^[1-9A-HJ-NP-Za-km-z]+$/.test(s);
+
+function beep(){/* son retiré */}
+
+// ── Env detection ─────────────────────────────────────────────────────────────
+async function detectEnv(){
+  try{
+    const r=await fetch('https://api.dexscreener.com/latest/dex/search?q=SOL',{signal:AbortSignal.timeout(4000)});
+    setEnv(r.ok?'local':'restricted');
+  }catch{setEnv('restricted');}
+}
+function setEnv(e){
+  ENV=e;
+  const tag=document.getElementById('envTag'),bw=document.getElementById('bannerWarn'),bo=document.getElementById('bannerOk'),em=document.getElementById('emTxt');
+  if(e==='local'){
+    tag.className='env-tag env-local';tag.textContent='● LOCAL — APIs OK';
+    bw.style.display='none';bo.style.display='flex';
+    em.textContent='Lance le scanner pour démarrer';SCAN_INT=45;
+    setStat('ok','Mode local — DexScreener · RugCheck · Helius opérationnels');
+  }else{
+    tag.className='env-tag env-iframe';tag.textContent='⚠ VIEWER';
+    bw.style.display='flex';bo.style.display='none';
+    em.innerHTML='<span style="color:#f87171;font-size:14px">⚠ APIs bloquées dans le viewer Claude</span><br><span style="color:#374151;font-size:11px;margin-top:6px;display:block">Télécharge ce fichier → ouvre dans Chrome/Firefox</span>';
+    SCAN_INT=90;setStat('warn','Mode restreint — télécharge le fichier pour le scanner en temps réel');
+  }
+}
+
+// ── Fetch helpers ─────────────────────────────────────────────────────────────
+async function get(url,ms=7000){
+  try{const r=await fetch(url,{signal:AbortSignal.timeout(ms)});if(r.ok)return r.json();}catch{}
+  try{const r=await fetch('https://corsproxy.io/?'+encodeURIComponent(url),{signal:AbortSignal.timeout(ms+4000)});if(r.ok)return r.json();}catch{}
+  return null;
+}
+// DexScreener token profiles — source principale (CORS OK)
+const getDexProfiles=()=>get('https://api.dexscreener.com/token-profiles/latest/v1');
+const getDexNewPairs=()=>get('https://api.dexscreener.com/latest/dex/search?q=pump&rankBy=trendingScoreH1&order=desc',7000);
+const getDexNewPairs2=()=>get('https://api.dexscreener.com/latest/dex/search?q=sol&rankBy=pairCreatedAt&order=desc',7000);
+const getRugNew=()=>get('https://api.rugcheck.xyz/v1/tokens/trending?limit=50',6000);
+// ── Santé des APIs ────────────────────────────────────────────────────────────
+const apiHealth={dex:null,rug:null,helius:null,jup:null,gecko:null,goplus:null};
+function recHealth(k,ok){apiHealth[k]={ok,ts:Date.now()};renderHealth();}
+function renderHealth(){
+  const el=document.getElementById('apiHealth');
+  if(!el)return;
+  const dot=(k,lbl)=>{
+    const h=apiHealth[k];
+    const c=h==null?'#3a5070':h.ok?'#22c55e':'#f87171';
+    return`<span style="color:${c}">●</span><span style="color:#4a5568;font-size:9px;margin-right:5px">${lbl}</span>`;
+  };
+  el.innerHTML=dot('dex','Dex')+dot('rug','Rug')+dot('helius','Hel')+dot('jup','Jup')+dot('gecko','Gck')+dot('goplus','GoP');
+}
+
+async function getDex(m){
+  const d=await get(`https://api.dexscreener.com/latest/dex/tokens/${m}`);
+  recHealth('dex',!!d);
+  return d;
+}
+
+// RugCheck : toujours le rapport COMPLET, avec cache 5min
+async function getRug(m){
+  const c=rugCache[m];
+  if(c&&Date.now()-c.ts<CACHE_TTL)return c.data;
+  const d=await get(`https://api.rugcheck.xyz/v1/tokens/${m}/report`,9000);
+  recHealth('rug',!!d);
+  if(d)rugCache[m]={ts:Date.now(),data:d};
+  return d;
+}
+
+// Boosts : /active est mort (404), seul /top fonctionne
+async function getBoosts(){
+  const d=await get('https://api.dexscreener.com/token-boosts/top/v1');
+  if(Array.isArray(d))return d;
+  if(d?.data&&Array.isArray(d.data))return d.data;
+  return[];
+}
+
+// Jupiter trending mort — remplacé par DexScreener trendingScoreH1 (fiable, CORS OK)
+async function getJupTrend(){
+  try{
+    const d=await get('https://api.dexscreener.com/latest/dex/search?q=solana&rankBy=trendingScoreH1&order=desc',7000);
+    const pairs=(d?.pairs||[]).filter(p=>p.chainId==='solana').slice(0,50);
+    // Normaliser au même format que le reste (address = mint du baseToken)
+    return pairs.map((p,i)=>({
+      address:p.baseToken?.address||'',
+      mint:p.baseToken?.address||'',
+      symbol:p.baseToken?.symbol||'',
+      trendingScore:p.trendingScore?.h1||0,
+      rank:i+1,
+    }));
+  }catch{return[];}
+}
+
+// ── Collecter les mints depuis toutes les sources disponibles ─────────────────
+async function collectMints(profiles, boosts, trend){
+  const mints=new Map(); // mint → {links, fromProfile}
+  const now=Date.now();
+  const cutoffAge=now-(maxAgeH*3600000); // seuil dynamique selon maxAgeH
+
+  // 1. DexScreener token-profiles (a les liens sociaux)
+  const profArr=Array.isArray(profiles)?profiles:[];
+  profArr.filter(p=>p.chainId==='solana').forEach(p=>{
+    if(p.tokenAddress) mints.set(p.tokenAddress,{links:p.links||[],fromProfile:true});
+  });
+
+  // 2. Boosts actifs Solana
+  const boostArr=Array.isArray(boosts)?boosts:[];
+  boostArr.filter(b=>b.chainId==='solana').forEach(b=>{
+    if(b.tokenAddress&&!mints.has(b.tokenAddress))
+      mints.set(b.tokenAddress,{links:[],fromProfile:false});
+  });
+
+  // 3. Jupiter Trending (top 50)
+  const tArr=Array.isArray(trend)?trend:(trend?.tokens||[]);
+  tArr.slice(0,50).forEach(t=>{
+    const addr=t.address||t.mint||t.id||'';
+    if(addr&&!mints.has(addr)) mints.set(addr,{links:[],fromProfile:false});
+  });
+
+  // 4. DexScreener nouvelles paires — plusieurs requêtes en parallèle
+  // pour couvrir pump.fun, raydium, meteora etc.
+  const ageCutoff=cutoffAge;
+  const searchResults=await Promise.allSettled([
+    getDexNewPairs(),
+    getDexNewPairs2(),
+    get('https://api.dexscreener.com/latest/dex/search?q=pumpswap&rankBy=pairCreatedAt&order=desc',7000),
+    get('https://api.dexscreener.com/latest/dex/search?q=raydium&rankBy=pairCreatedAt&order=desc',7000),
+  ]);
+  for(const r of searchResults){
+    if(r.status!=='fulfilled'||!r.value)continue;
+    const pairs=r.value?.pairs||[];
+    pairs
+      .filter(p=>p.chainId==='solana'&&(p.pairCreatedAt||0)>ageCutoff)
+      .sort((a,b)=>(b.pairCreatedAt||0)-(a.pairCreatedAt||0))
+      .slice(0,30)
+      .forEach(p=>{
+        const addr=p.baseToken?.address;
+        if(addr&&!mints.has(addr)){
+          const links=[];
+          if(p.info?.socials) p.info.socials.forEach(s=>{
+            if(s.type==='twitter')links.push({type:'twitter',url:s.url});
+            if(s.type==='website')links.push({type:'website',url:s.url});
+          });
+          if(p.info?.websites) p.info.websites.forEach(w=>links.push({type:'website',url:w.url}));
+          mints.set(addr,{links,fromProfile:false});
+        }
+      });
+  }
+
+  // 5. RugCheck trending tokens (< 24h, pump.fun + autres)
+  try{
+    const rugNew=await getRugNew();
+    const rugArr=Array.isArray(rugNew)?rugNew:(rugNew?.tokens||rugNew?.data||[]);
+    rugArr.forEach(t=>{
+      const addr=t.mint||t.address||t.tokenAddress||'';
+      if(addr&&!mints.has(addr)) mints.set(addr,{links:[],fromProfile:false});
+    });
+  }catch{}
+
+  // 6. Recherches trending sur fenêtres larges (h6, h24) + DLMM/Meteora dédiées
+  // Capture les tokens qui ont grossi ou qui ont une pool DLMM mais sont sortis
+  // des "nouvelles paires". IMPORTANT : pas de filtre d'âge strict ici car une
+  // pool DLMM peut être plus ancienne que 24h tout en restant pertinente.
+  const trendSearches=await Promise.allSettled([
+    get('https://api.dexscreener.com/latest/dex/search?q=pump&rankBy=trendingScoreH6&order=desc',7000),
+    get('https://api.dexscreener.com/latest/dex/search?q=pump&rankBy=volume&order=desc',7000),
+    get('https://api.dexscreener.com/latest/dex/search?q=meteora&rankBy=trendingScoreH6&order=desc',7000),
+    get('https://api.dexscreener.com/latest/dex/search?q=meteora%20dlmm&rankBy=volume&order=desc',7000),
+    get('https://api.dexscreener.com/latest/dex/search?q=dlmm&rankBy=trendingScoreH1&order=desc',7000),
+  ]);
+  for(const r of trendSearches){
+    if(r.status!=='fulfilled'||!r.value)continue;
+    (r.value?.pairs||[])
+      .filter(p=>p.chainId==='solana')  // PAS de filtre d'âge ici — capture les pools DLMM établies
+      .slice(0,30)
+      .forEach(p=>{
+        const addr=p.baseToken?.address;
+        if(addr&&!mints.has(addr)) mints.set(addr,{links:[],fromProfile:false});
+      });
+  }
+
+  // 7. WATCHLIST — toujours inclure les tokens épinglés, même s'ils sont sortis
+  // des sources de découverte (token établi, MCap élevé, etc.)
+  watchlist.forEach(addr=>{
+    if(addr&&!mints.has(addr)) mints.set(addr,{links:[],fromProfile:false,fromWatch:true});
+  });
+
+  // 8. SUIVI MANUEL — adresses forcées par l'utilisateur, toujours scannées
+  forceAddresses.forEach(addr=>{
+    if(addr&&!mints.has(addr)) mints.set(addr,{links:[],fromProfile:false,fromForce:true});
+    else if(addr&&mints.has(addr)) mints.get(addr).fromForce=true;
+  });
+
+  return mints;
+}
+
+// ── DLMM detection (primary = DexScreener dexId) ─────────────────────────────
+// DexScreener returns dexId: "meteora-dlmm" for DLMM pools
+// and "meteora" for Meteora AMM pools
+function detectDLMM(dex){
+  const pairs=dex?.pairs||[];
+  const match=pairs.find(p=>
+    p.chainId==='solana'&&(
+      p.dexId==='meteora-dlmm'||
+      p.dexId==='meteoradlmm'||
+      (p.dexId&&p.dexId.toLowerCase().includes('meteora')&&p.dexId.toLowerCase().includes('dlmm'))||
+      (p.labels&&p.labels.some(l=>(l||'').toLowerCase().includes('dlmm')))
+    )
+  );
+  if(match) return true;
+  // If we have dex data but no DLMM pair found, return false (confirmed no DLMM)
+  if(pairs.some(p=>p.chainId==='solana')) return false;
+  // No dex data at all → unknown
+  return null;
+}
+
+// List all DEX names found in DexScreener response
+function listDexes(dex){
+  const pairs=dex?.pairs||[];
+  const names=new Set(pairs.filter(p=>p.chainId==='solana').map(p=>p.dexId||'').filter(Boolean));
+  return names.size>0?[...names].join(', '):'—';
+}
+
+// ── Holders ───────────────────────────────────────────────────────────────────
+function top10pct(rug){
+  // /report retourne topHolders[] avec champ pct (float, ex: 5.23)
+  const h=rug?.topHolders||[];
+  if(!h.length)return null;
+  const s=h.slice(0,10).reduce((a,x)=>a+(parseFloat(x.pct)||0),0);
+  return s>0?parseFloat(s.toFixed(1)):null;
+}
+
+// totalHolders est un champ direct du /report (pas besoin de paginer Helius pour ça)
+function getReportHolderCount(rug){
+  const n=rug?.totalHolders??rug?.tokenHolderCount??rug?.holderCount??null;
+  return n!=null?parseInt(n):null;
+}
+// ── Helius key management ─────────────────────────────────────────────────────
+let heliusKey = localStorage.getItem('helius_api_key')||'';
+// Assainissement : une clé corrompue par l'ancien bug de masquage (contient '…')
+// désactivait Helius silencieusement. On la supprime et on invite à la recoller.
+let heliusKeyWasCorrupted=false;
+if(heliusKey&&(heliusKey.includes('…')||heliusKey.includes('\u2026'))){
+  heliusKey='';localStorage.removeItem('helius_api_key');heliusKeyWasCorrupted=true;
+}
+
+function heliusExtractUUID(v){
+  if(!v)return null;
+  if(v.includes('…'))return null; // valeur masquée affichée, pas une vraie clé
+  const m=v.match(/api-key=([a-f0-9\-]{32,36})/i);
+  if(m)return m[1];
+  const t=v.trim();
+  if(/^[a-f0-9\-]{32,36}$/i.test(t))return t;
+  return null;
+}
+function onHeliusInput(v){
+  const el=document.getElementById('heliusKey');
+  el.className='helius-inp'+(heliusExtractUUID(v)?' valid':'');
+}
+function saveHeliusKey(){
+  const raw=document.getElementById('heliusKey').value.trim();
+  const st=document.getElementById('heliusStatus');
+  if(!raw){clearHeliusKey();return;}
+  // Protection : ne jamais sauvegarder la valeur masquée affichée
+  if(raw.includes('…')){
+    st.textContent='Clé déjà enregistrée — colle une nouvelle clé pour la remplacer';
+    setTimeout(()=>{st.textContent='';},4000);return;
+  }
+  const uuid=heliusExtractUUID(raw);
+  if(!uuid){
+    st.textContent='❌ Clé invalide — colle l\'UUID (xxxxxxxx-xxxx-…) ou l\'URL RPC complète';
+    setTimeout(()=>{st.textContent='';},5000);return;
+  }
+  heliusKey=uuid; // toujours stocker l'UUID normalisé
+  localStorage.setItem('helius_api_key',uuid);
+  updateHeliusUI(true);
+  st.textContent='✓ Clé enregistrée — test en cours…';
+  testHeliusKey();
+}
+async function testHeliusKey(){
+  const st=document.getElementById('heliusStatus');
+  const url=getHeliusURL();
+  if(!url){st.textContent='❌ Clé illisible';return;}
+  try{
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
+      signal:AbortSignal.timeout(6000),
+      body:JSON.stringify({jsonrpc:'2.0',id:'ping',method:'getHealth'})});
+    if(r.status===401){st.textContent='❌ Clé refusée par Helius (401) — vérifie-la sur dashboard.helius.dev';recHealth('helius',false);return;}
+    if(!r.ok){st.textContent='⚠ Helius répond HTTP '+r.status;recHealth('helius',false);return;}
+    st.textContent='✅ Connexion Helius vérifiée';
+    recHealth('helius',true);
+    setTimeout(()=>{st.textContent='';},4000);
+  }catch(e){st.textContent='⚠ Test échoué : '+e.message;}
+}
+function clearHeliusKey(){
+  heliusKey='';
+  localStorage.removeItem('helius_api_key');
+  document.getElementById('heliusKey').value='';
+  document.getElementById('heliusKey').className='helius-inp';
+  updateHeliusUI(false);
+}
+function updateHeliusUI(hasKey){
+  const tag=document.getElementById('heliusTag');
+  const valid=hasKey&&!!getHeliusUUID();
+  if(valid){
+    tag.className='helius-tag htag-ok';tag.textContent='⚡ Helius ✓';
+    const k=getHeliusUUID();
+    document.getElementById('heliusKey').value=k.slice(0,8)+'…'+k.slice(-4);
+    document.getElementById('heliusKey').className='helius-inp valid';
+  }else if(hasKey){
+    tag.className='helius-tag htag-no';tag.textContent='⚡ Clé invalide';
+    document.getElementById('heliusKey').value='';
+    document.getElementById('heliusKey').className='helius-inp';
+  }else{
+    tag.className='helius-tag htag-no';tag.textContent='⚡ Helius';
+  }
+}
+function initHeliusUI(){
+  if(heliusKeyWasCorrupted){
+    const st=document.getElementById('heliusStatus');
+    if(st){st.textContent='⚠️ Clé corrompue détectée et supprimée — recolle ta clé Helius';st.style.color='#fbbf24';}
+  }
+  if(!heliusKey)return;
+  const st=document.getElementById('heliusStatus');
+  if(getHeliusUUID()){
+    updateHeliusUI(true);
+    st.textContent='Clé chargée';
+    setTimeout(()=>{st.textContent='';},2500);
+    testHeliusKey(); // vérifie la validité réelle au démarrage
+  }else{
+    // Clé stockée corrompue (ex: valeur masquée sauvegardée par erreur) → purge auto
+    localStorage.removeItem('helius_api_key');heliusKey='';
+    updateHeliusUI(false);
+    st.textContent='⚠ Clé stockée invalide détectée et purgée — recolle ta clé Helius';
+  }
+}
+
+// Async: fetch holder count — Helius (si clé dispo) > Solscan public
+
+
+// Extraire la clé UUID depuis une clé Helius (accepte URL complète ou UUID seul)
+function getHeliusUUID(){
+  if(!heliusKey)return null;
+  // Si l'utilisateur a collé l'URL complète : https://mainnet.helius-rpc.com/?api-key=UUID
+  const m=heliusKey.match(/api-key=([a-f0-9\-]{32,36})/i);
+  if(m)return m[1];
+  // UUID direct (format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+  if(/^[a-f0-9\-]{32,36}$/i.test(heliusKey.trim()))return heliusKey.trim();
+  return null;
+}
+function getHeliusURL(){
+  const k=getHeliusUUID();
+  return k?`https://mainnet.helius-rpc.com/?api-key=${k}`:null;
+}
+
+async function fetchHolderCount(mint, rug){
+  // Cache 5min
+  const c=holderCache[mint];
+  if(c&&Date.now()-c.ts<CACHE_TTL)return c.val;
+  const val=await _fetchHolderCount(mint, rug);
+  if(val!=null)holderCache[mint]={ts:Date.now(),val};
+  return val;
+}
+async function _fetchHolderCount(mint, rug){
+  // 1. Helius getTokenAccounts — compter les OWNERS UNIQUES (comme GMGN), pas les token accounts
+  const heliusUrl=getHeliusURL();
+  if(heliusUrl){
+    try{
+      const owners=new Set();
+      // Arrêt intelligent : au-delà de max(minHolders×2, 10 000) owners, on cesse de
+      // paginer (économie de quota Helius) et on affiche un plancher « ≥ N »
+      const target=Math.max((((typeof minHolders!=='undefined')&&minHolders)||850)*2,10000);
+      let cursor=null,pages=0,floor=false;
+      do{
+        const params={mint,limit:1000,options:{showZeroBalance:false}};
+        if(cursor)params.cursor=cursor;
+        const r=await fetch(heliusUrl,{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          signal:AbortSignal.timeout(8000),
+          body:JSON.stringify({jsonrpc:'2.0',id:'hc'+pages,method:'getTokenAccounts',params})
+        });
+        if(!r.ok)break;
+        const d=await r.json();
+        if(d?.error)break;
+        const accs=d?.result?.token_accounts||d?.result?.tokenAccounts||[];
+        // Dédupliquer par owner (un wallet = 1 holder même avec plusieurs comptes)
+        accs.forEach(a=>{const o=a.owner||a.address;if(o)owners.add(o);});
+        cursor=d?.result?.cursor||null;
+        pages++;
+        if(owners.size>=target&&cursor){floor=true;break;}
+        if(pages>=25){if(cursor&&accs.length>=1000)floor=true;break;}
+        if(accs.length<1000)break;
+      }while(cursor);
+      if(owners.size>0){recHealth('helius',true);heliusOwners[mint]=owners.size;heliusFloor[mint]=floor;holderSrc[mint]='Helius';return owners.size;}
+      recHealth('helius',false);
+    }catch{recHealth('helius',false);}
+  }
+
+  // 2. Fallback : Jupiter lite-api (holderCount frais, déjà récupéré/caché par getJupInfo)
+  try{
+    const j=await getJupInfo(mint);
+    if(j&&j.jupHolders!=null&&+j.jupHolders>0){holderSrc[mint]='Jupiter';return parseInt(j.jupHolders);}
+  }catch{}
+
+  // 3. Dernier recours : champ totalHolders de RugCheck (souvent périmé — affiché avec ⚠)
+  const fromRug=rug?.totalHolders??rug?.tokenHolderCount??null;
+  if(fromRug!=null&&+fromRug>0){holderSrc[mint]='RugCheck';return parseInt(fromRug);}
+
+  return null;
+}
+
+// ── Snipers & Phishing ─────────────────────────────────────────────────────────
+async function calcSniperPhishing(mint, rug, _hc){
+  const out={sniperPct:null, sniperCount:null, bundlePct:null, bundleWallets:null, phishingPct:null, phishingNote:''};
+
+  // ── SNIPERS : % du supply détenu par les insiders ──
+  const holders=rug?.topHolders||[];
+  const insiders=holders.filter(h=>h.insider===true||h.isInsider===true);
+  if(insiders.length){
+    out.sniperCount=insiders.length;
+    out.sniperPct=parseFloat(insiders.reduce((a,h)=>a+(parseFloat(h.pct)||0),0).toFixed(1));
+  }
+  // insiderNetworks RugCheck : réseaux de wallets liés (bundles au lancement).
+  // Métrique SÉPARÉE des snipers : % du supply détenu par ces réseaux.
+  const nets=Array.isArray(rug?.insiderNetworks)?rug.insiderNetworks:[];
+  if(nets.length){
+    const netCount=nets.reduce((a,n)=>a+(parseInt(n.size||n.activeAccounts)||0),0);
+    if(netCount>0)out.bundleWallets=netCount;
+    const supply=parseFloat(rug?.token?.supply);
+    if(supply>0){
+      const amt=nets.reduce((a,n)=>a+(parseFloat(n.tokenAmount)||0),0);
+      if(amt>0)out.bundlePct=parseFloat(Math.min(100,(amt/supply)*100).toFixed(1));
+    }
+  }
+  if(out.sniperCount==null&&rug?.graphInsidersDetected!=null)
+    out.sniperCount=parseInt(rug.graphInsidersDetected)||0;
+
+  // ── PHISHING : holders annoncés (RugCheck) vs owners réels (Helius) ──
+  // Les deux sources sont maintenant séparées explicitement :
+  // heliusOwners[mint] n'est rempli QUE quand Helius a réellement répondu.
+  const rugHolders=rug?.totalHolders??rug?.tokenHolderCount??null;
+  const hOwn=heliusOwners[mint]??null;
+  if(!getHeliusURL()){out.phishingNote='Clé Helius requise';}
+  else if(hOwn==null){out.phishingNote='Helius sans réponse pour ce token';}
+  else if(rugHolders==null){out.phishingNote='totalHolders absent (RugCheck)';}
+  else{
+    const ratio=rugHolders/hOwn;
+    if(ratio>1.15){
+      const inflated=Math.max(0,rugHolders-hOwn);
+      out.phishingPct=parseFloat(Math.min(100,(inflated/rugHolders)*100).toFixed(1));
+      out.phishingNote=`${rugHolders} annoncés vs ${hOwn} réels`;
+    }else{out.phishingPct=0;out.phishingNote='Cohérent ('+rugHolders+' vs '+hOwn+')';}
+  }
+  return out;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  ENRICHISSEMENT — Jupiter (organic score) · GeckoTerminal (wash) · GoPlus (sécu)
+//  Appelé uniquement sur les tokens prometteurs pour respecter les rate limits.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Jupiter Tokens V2 : organic score, flag isSus, présence dans l'écosystème
+async function getJupInfo(mint){
+  const c=jupCache[mint];
+  if(c&&Date.now()-c.ts<CACHE_TTL)return c.data;
+  const d=await get(`https://lite-api.jup.ag/tokens/v2/search?query=${mint}`,7000);
+  recHealth('jup',!!d);
+  let out=null;
+  const arr=Array.isArray(d)?d:(d?.tokens||d?.data||[]);
+  const t=arr.find(x=>((x.id||x.address||'')+'').toLowerCase()===mint.toLowerCase());
+  if(t){
+    out={
+      organicScore:(typeof t.organicScore==='number')?t.organicScore:null,
+      organicLabel:t.organicScoreLabel||null,
+      isSus:t.audit?.isSus===true,
+      isVerified:t.isVerified===true||(Array.isArray(t.tags)&&t.tags.includes('verified')),
+      jupHolders:t.holderCount??null,
+    };
+  }
+  jupCache[mint]={ts:Date.now(),data:out};
+  return out;
+}
+
+// GeckoTerminal : acheteurs/vendeurs UNIQUES (détection wash trading)
+async function getGeckoData(mint){
+  const c=geckoCache[mint];
+  if(c&&Date.now()-c.ts<CACHE_TTL)return c.data;
+  const d=await get(`https://api.geckoterminal.com/api/v2/networks/solana/tokens/${mint}/pools?page=1`,7000);
+  recHealth('gecko',!!d);
+  let out=null;
+  const pool=d?.data?.[0];
+  if(pool){
+    const a=pool.attributes||{};
+    const h1=a.transactions?.h1||{}, h24=a.transactions?.h24||{};
+    out={
+      buyers1h:h1.buyers??null, sellers1h:h1.sellers??null, buys1h:h1.buys??null,
+      buyers24h:h24.buyers??null, sellers24h:h24.sellers??null,
+      gVol1h:parseFloat(a.volume_usd?.h1)||null,
+      gVol24h:parseFloat(a.volume_usd?.h24)||null,
+    };
+  }
+  geckoCache[mint]={ts:Date.now(),data:out};
+  return out;
+}
+
+// GeckoTerminal /info : repêchage des liens sociaux quand DexScreener n'en a pas
+async function getGeckoInfo(mint){
+  const c=geckoInfoCache[mint];
+  if(c&&Date.now()-c.ts<CACHE_TTL*3)return c.data;
+  const d=await get(`https://api.geckoterminal.com/api/v2/networks/solana/tokens/${mint}/info`,7000);
+  let out=null;
+  const a=d?.data?.attributes;
+  if(a){
+    const tw=a.twitter_handle?('https://x.com/'+String(a.twitter_handle).replace(/^@/,'')):null;
+    const ws=Array.isArray(a.websites)&&a.websites.length?a.websites[0]:null;
+    if(tw||ws)out={twitter:tw,website:ws};
+  }
+  geckoInfoCache[mint]={ts:Date.now(),data:out};
+  return out;
+}
+
+
+// ── Communauté 𝕏 : nombre d'abonnés du compte du token ──────────────────────
+// Via l'API publique fxtwitter (non-officielle, gratuite). Peut cesser de
+// fonctionner si le service change — dégradation silencieuse en "n/d".
+async function getXCommunity(twitterUrl){
+  if(!twitterUrl)return null;
+  const s=String(twitterUrl);
+  // Lien vers une Communauté X (x.com/i/communities/…) : pas d'API gratuite pour le comptage
+  if(/\/i\/communities\//.test(s))return{community:true};
+  const m=s.match(/(?:x|twitter)\.com\/(@?[A-Za-z0-9_]{1,15})/);
+  if(!m)return null;
+  const handle=m[1].replace(/^@/,'');
+  if(['search','i','home','intent','hashtag','share','login','explore'].includes(handle.toLowerCase()))return null;
+  const key=handle.toLowerCase();
+  const c=xComCache[key];
+  if(c&&Date.now()-c.ts<CACHE_TTL*3)return c.data;
+  let out=null;
+  try{
+    // fetch simple sans en-têtes personnalisés (évite le preflight CORS)
+    const r=await fetch('https://api.fxtwitter.com/'+handle,{signal:AbortSignal.timeout(7000)});
+    if(r.ok){
+      const d=await r.json();
+      const u=d&&d.user;
+      if(u&&typeof u.followers==='number')out={followers:u.followers,handle:u.screen_name||handle};
+    }
+  }catch(e){}
+  xComCache[key]={ts:Date.now(),data:out};
+  return out;
+}
+
+// Wash trading : gros volume réparti sur très peu d'acheteurs uniques
+function calcWash(g){
+  if(!g)return null;
+  const buyers=g.buyers1h??g.buyers24h;
+  const vol=(g.buyers1h!=null)?g.gVol1h:g.gVol24h;
+  const txs=g.buys1h||0;
+  if(buyers==null||!vol)return null;
+  if(buyers===0)return{level:'high',volPerBuyer:null,txPerBuyer:null,buyers:0};
+  const volPerBuyer=vol/buyers;
+  const txPerBuyer=txs?txs/buyers:null;
+  let level='ok';
+  if(volPerBuyer>8000||(txPerBuyer&&txPerBuyer>12))level='high';
+  else if(volPerBuyer>3000||(txPerBuyer&&txPerBuyer>6))level='mid';
+  return{level,volPerBuyer,txPerBuyer,buyers};
+}
+
+// GoPlus Token Security (Solana) : contre-expertise de RugCheck
+async function getGoPlus(mint){
+  const c=goplusCache[mint];
+  if(c&&Date.now()-c.ts<CACHE_TTL)return c.data;
+  const d=await get(`https://api.gopluslabs.io/api/v1/solana/token_security?contract_addresses=${mint}`,8000);
+  recHealth('goplus',!!d);
+  let out=null;
+  const res=d?.result;
+  const r=res?(res[mint]||res[mint.toLowerCase()]||Object.values(res)[0]):null;
+  if(r){
+    const st=x=>x?.status==='1'||x===true||x==='1';
+    const feeRaw=r.transfer_fee?.fee_rate??r.transfer_fee;
+    out={
+      mintable:st(r.mintable), freezable:st(r.freezable),
+      closable:st(r.closable), balanceMutable:st(r.balance_mutable_authority),
+      metadataMutable:st(r.metadata_mutable),
+      transferFee:(typeof feeRaw==='object')?0:(parseFloat(feeRaw)||0),
+      transferHook:Array.isArray(r.transfer_hook)?r.transfer_hook.length>0:st(r.transfer_hook),
+      dangers:[],
+    };
+    if(out.mintable)out.dangers.push('Mint actif');
+    if(out.freezable)out.dangers.push('Freeze actif');
+    if(out.transferFee>0)out.dangers.push('Taxe '+out.transferFee+'%');
+    if(out.transferHook)out.dangers.push('Transfer hook');
+    if(out.balanceMutable)out.dangers.push('Balance modifiable');
+    if(out.closable)out.dangers.push('Compte fermable');
+  }
+  goplusCache[mint]={ts:Date.now(),data:out};
+  return out;
+}
+
+
+// ── Trajectoire du score (évolution sur la session) ───────────────────────────
+function scoreTraj(t){
+  const h=(history[t.address]||[]).filter(p=>p.total!=null);
+  if(h.length<2)return null;
+  const first=h[0];
+  return{first:first.total,last:t.total,delta:t.total-first.total,
+         riskFirst:first.risk??null,riskLast:t.risk??null,points:h.length,
+         since:first.ts};
+}
+function trajArrow(t){
+  const tr=scoreTraj(t);
+  if(!tr||tr.delta===0)return'';
+  return tr.delta>0
+    ?` <span style="color:#4ade80;font-size:10px" title="Score en hausse : ${tr.first}→${tr.last} sur la session">↗</span>`
+    :` <span style="color:#f87171;font-size:10px" title="Score en baisse : ${tr.first}→${tr.last} sur la session">↘</span>`;
+}
+
+// ── Détection de tickers recyclés / copiés ────────────────────────────────────
+// Cherche d'autres tokens Solana portant EXACTEMENT le même symbole :
+// - un ancien token mort du même nom = ticker recyclé (farming de nostalgie)
+// - un token actif du même nom = copie/imitation
+async function checkRecycledTicker(symbol,mint,myCreatedAt){
+  if(!symbol||symbol==='???'||symbol.length<2)return null;
+  const key=symbol.toUpperCase();
+  let pairs;
+  const c=tickerCache[key];
+  if(c&&Date.now()-c.ts<CACHE_TTL*3){pairs=c.pairs;}
+  else{
+    const d=await get(`https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(symbol)}`,7000);
+    pairs=(d?.pairs||[]).filter(p=>p.chainId==='solana');
+    tickerCache[key]={ts:Date.now(),pairs};
+  }
+  // Autres tokens (adresses différentes) au symbole IDENTIQUE
+  const seen=new Set();const others=[];
+  for(const p of pairs){
+    const a=p.baseToken?.address||'';
+    if(a&&a!==mint&&(p.baseToken?.symbol||'').toUpperCase()===key&&!seen.has(a)){
+      seen.add(a);others.push(p);
+    }
+  }
+  if(!others.length)return{recycled:false,copycat:false,count:0,deadCount:0,aliveCount:0};
+  const older=others.filter(p=>(p.pairCreatedAt||0)<(myCreatedAt||Date.now()));
+  const dead=older.filter(p=>(p.liquidity?.usd||0)<5000);
+  const alive=others.filter(p=>(p.liquidity?.usd||0)>50000);
+  return{
+    recycled:dead.length>0,
+    copycat:alive.length>0,
+    count:others.length,deadCount:dead.length,aliveCount:alive.length,
+  };
+}
+
+// Fusionne les 3 sources dans le token + recalcule le risque
+function enrichTok(t,jup,gecko,gop,tick){
+  if(jup){
+    t.organicScore=jup.organicScore;t.organicLabel=jup.organicLabel;
+    t.jupSus=jup.isSus;t.jupVerified=jup.isVerified;t.jupListed=true;
+  }else{t.jupListed=false;}
+  if(gecko){
+    t.buyers1h=gecko.buyers1h;t.sellers1h=gecko.sellers1h;
+    const w=calcWash(gecko);
+    t.wash=w?w.level:null;t.washDetail=w;
+  }
+  if(gop)t.goplus=gop;
+  if(tick)t.ticker=tick;
+  // Malus de risque issus des nouvelles sources
+  let extra=0;const why=[];
+  if(t.jupSus){extra+=25;why.push('⛔ Signalé suspect (Jupiter)');}
+  if(t.jupListed===false){extra+=10;why.push('Absent de Jupiter');}
+  if(t.organicLabel==='low'||(typeof t.organicScore==='number'&&t.organicScore<30)){extra+=10;why.push('Activité peu organique');}
+  if(t.wash==='high'){extra+=20;why.push('Wash trading probable');}
+  else if(t.wash==='mid'){extra+=10;why.push('Volume/acheteur élevé');}
+  if(gop){
+    if(gop.transferFee>0){extra+=15;why.push('Taxe transfert '+gop.transferFee+'% (GoPlus)');}
+    if(gop.transferHook){extra+=15;why.push('Transfer hook (GoPlus)');}
+    if(gop.balanceMutable){extra+=20;why.push('Balance modifiable (GoPlus)');}
+    if(gop.mintable&&t.scores.no_mint===true){extra+=15;why.push('Divergence mint RugCheck/GoPlus');}
+    if(gop.freezable&&t.scores.no_freeze===true){extra+=15;why.push('Divergence freeze RugCheck/GoPlus');}
+  }
+  if(tick){
+    if(tick.recycled){extra+=15;why.push('♻️ Ticker recyclé ('+tick.deadCount+' ancien(s) mort(s))');}
+    if(tick.copycat){extra+=10;why.push('Symbole déjà pris par un token actif');}
+  }
+  if(extra>0){
+    t.risk=Math.min(100,(t.risk||0)+extra);
+    t.riskReasons=[...(t.riskReasons||[]),...why];
+  }
+  // Répercuter le risque final dans le dernier snapshot d'historique
+  const _h=history[t.address];
+  if(_h&&_h.length)_h[_h.length-1].risk=t.risk;
+  t.enriched=true;
+}
+
+// ── Dev wallet detection ───────────────────────────────────────────────────────
+async function fetchDevInfo(mint, rug){
+  const c=devCache[mint];
+  if(c&&Date.now()-c.ts<CACHE_TTL)return c.val;
+  const val=await _fetchDevInfo(mint, rug);
+  if(val&&val.devAddr)devCache[mint]={ts:Date.now(),val};
+  return val;
+}
+async function _fetchDevInfo(mint, rug){
+  let devAddr=null;
+  // 1. RugCheck /report — champ direct confirmé par debug
+  if(rug){
+    devAddr=rug?.creator||rug?.creatorAddress||rug?.deployer
+      ||rug?.mintAuthority||rug?.tokenMeta?.creator
+      ||rug?.tokenMeta?.updateAuthority||null;
+    // Fallback : premier holder avec > 5% (souvent le dev sur les nouveaux tokens)
+    if(!devAddr){
+      const h=rug?.topHolders||[];
+      const ins=h.find(x=>x.insider===true||x.isInsider===true);
+      if(ins)devAddr=ins.address||null;
+      if(!devAddr&&h.length&&(h[0].pct||0)>5)devAddr=h[0].address||null;
+    }
+  }
+  // 2. Helius getAccountInfo → mintAuthority SPL
+  const heliusUrl=getHeliusURL();
+  if(!devAddr&&heliusUrl){
+    try{
+      const r=await fetch(heliusUrl,{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(6000),body:JSON.stringify({jsonrpc:'2.0',id:'gai',method:'getAccountInfo',params:[mint,{encoding:'jsonParsed'}]})});
+      if(r.ok){const d=await r.json();const info=d?.result?.value?.data?.parsed?.info;if(info?.mintAuthority)devAddr=info.mintAuthority;}
+    }catch{}
+  }
+  // 3. Helius getAsset DAS
+  if(!devAddr&&heliusUrl){
+    try{
+      const r=await fetch(heliusUrl,{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(6000),body:JSON.stringify({jsonrpc:'2.0',id:'ga',method:'getAsset',params:{id:mint}})});
+      if(r.ok){const d=await r.json();devAddr=d?.result?.authorities?.[0]?.address||d?.result?.creators?.[0]?.address||null;}
+    }catch{}
+  }
+  if(!devAddr)return{devAddr:null,devPct:null,devBal:null,devSold:null};
+  // Position actuelle
+  const h=rug?.topHolders||[];
+  const entry=h.find(x=>x.address===devAddr);
+  const devPctRug=entry?parseFloat(entry.pct||0):null;
+  // Balance via Helius
+  let devBal=null,devSold=null;
+  if(heliusUrl){
+    try{
+      const r=await fetch(heliusUrl,{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(7000),body:JSON.stringify({jsonrpc:'2.0',id:'db',method:'getTokenAccountsByOwner',params:[devAddr,{mint},{encoding:'jsonParsed'}]})});
+      if(r.ok){const d=await r.json();if(!d.error){const accs=d?.result?.value||[];const bal=accs.reduce((s,a)=>s+(+a?.account?.data?.parsed?.info?.tokenAmount?.uiAmount||0),0);devBal=bal;devSold=(bal===0);}}
+    }catch{}
+  }
+  if(devSold===null){
+    if(devPctRug!=null)devSold=(devPctRug===0);
+    else devSold=h.slice(0,20).some(x=>x.address===devAddr)?false:null;
+  }
+  let devWalletAge=null;
+  if(heliusUrl){
+    try{
+      const r=await fetch(heliusUrl,{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(6000),
+        body:JSON.stringify({jsonrpc:'2.0',id:'sig',method:'getSignaturesForAddress',params:[devAddr,{limit:1000}]})});
+      if(r.ok){const d=await r.json();const sigs=d?.result||[];if(sigs.length){const oldest=sigs[sigs.length-1];if(oldest?.blockTime)devWalletAge=Date.now()-oldest.blockTime*1000;}}
+    }catch{}
+  }
+  return{devAddr,devPct:devPctRug,devBal,devSold,devWalletAge};
+}
+
+function scoreIt(pump,dex,rug,mint,dlmm,boosts,trend,holderCount,devInfo){
+  const s={no_mint:null,no_freeze:null,no_bundle:null,lp_locked:null,h_up:null,m_up:null,dist_ok:null,has_dlmm:null,holders_min:null,dev_holds:null,dev_clean:null,not_tribute:null};
+
+  // ── Détecter si c'est un token pump.fun via les paires DexScreener ──
+  const allPairs=dex?.pairs?.filter(x=>x.chainId==='solana')||[];
+  const isPumpFun=allPairs.some(p=>{
+    const d=(p.dexId||'').toLowerCase();
+    return d.includes('pump');
+  });
+
+  // ── Mint / Freeze : tokenMeta RugCheck en priorité ──
+  if(rug){
+    const meta=rug.tokenMeta||rug.token||{};
+    // mintAuthority: null or "" = disabled, any address = enabled
+    if('mintAuthority' in meta)       s.no_mint   = !meta.mintAuthority;
+    else if('mintable' in meta)        s.no_mint   = !meta.mintable;
+    // freezeAuthority idem
+    if('freezeAuthority' in meta)      s.no_freeze = !meta.freezeAuthority;
+    else if('freezeable' in meta)      s.no_freeze = !meta.freezeable;
+    // Fallback : parse risks si tokenMeta absent
+    if(s.no_mint===null||s.no_freeze===null){
+      const rn=(rug.risks||[]).map(r=>(r.name||'').toLowerCase());
+      if(s.no_mint===null){
+        if(rn.some(r=>r.includes('mint')&&(r.includes('enabled')||r.includes('authority'))))s.no_mint=false;
+        else if(rn.some(r=>r.includes('mint')&&r.includes('disabled')))s.no_mint=true;
+      }
+      if(s.no_freeze===null){
+        if(rn.some(r=>r.includes('freeze')&&(r.includes('enabled')||r.includes('authority'))))s.no_freeze=false;
+        else if(rn.some(r=>r.includes('freeze')&&r.includes('disabled')))s.no_freeze=true;
+      }
+    }
+    // Bundle / LP / distribution
+    const rn=(rug.risks||[]).map(r=>(r.name||'').toLowerCase());
+    s.no_bundle=!rn.some(r=>r.includes('bundle'));
+    if(!pump){
+      const bad=rn.some(r=>r.includes('lp')&&(r.includes('not locked')||r.includes('unlocked')));
+      const good=(rug.markets||[]).some(m=>m.lp?.lpBurned||(m.lp?.lpLockedPct||0)>80);
+      s.lp_locked=(!bad)||good;
+    }
+    const t10=top10pct(rug);if(t10!=null)s.dist_ok=t10<30;
+  }
+
+  // pump.fun (via param pump ou via dexId) : mint+freeze désactivés par protocole
+  if(pump||isPumpFun){
+    if(s.no_mint===null)   s.no_mint=true;
+    if(s.no_freeze===null) s.no_freeze=true;
+  }
+  if(pump){
+    s.lp_locked=(pump.complete===false);
+  }
+
+  if(dlmm!=null)s.has_dlmm=dlmm;
+  if(holderCount!=null)s.holders_min=holderCount>=minHolders;
+
+  // Critère ⑩ : dev n'a pas vendu
+  if(devInfo){
+    if(devInfo.devSold===true)  s.dev_holds=false; // a vendu → ❌
+    else if(devInfo.devSold===false) s.dev_holds=true;  // tient → ✅
+    else if(devInfo.devAddr&&devInfo.devPct!=null) s.dev_holds=devInfo.devPct>0; // % > 0 → ✅
+    else s.dev_holds=null; // inconnu
+  }
+
+  // Critère ⑪ : dev non fiché (wallet absent de la liste des devs à risque)
+  if(devInfo?.devAddr) s.dev_clean=!riskyDevLabel(devInfo.devAddr);
+  // sinon null : dev inconnu, on ne peut pas juger
+
+  // Critère ⑫ : pas un tribute token (nom/symbole ≠ nom de KOL connu)
+  {
+    const tName=pump?.name||allPairs[0]?.baseToken?.name||rug?.tokenMeta?.name||'';
+    const tSym=pump?.symbol||allPairs[0]?.baseToken?.symbol||rug?.tokenMeta?.symbol||'';
+    if(tName||tSym) s.not_tribute=!detectTributeToken(tName,tSym);
+  }
+
+  const pair=dex?.pairs?.filter(x=>x.chainId==='solana').sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0))[0];
+  if(pair){
+    s.h_up=(pair.txns?.h1?.buys||0)>(pair.txns?.h1?.sells||0);
+    const h=history[mint];
+    const pastMcap=h&&h.length?[...h].reverse().find(p=>p.mcap!=null&&p.ts<Date.now()-30000)?.mcap:null;
+    s.m_up=pastMcap!=null?(pair.marketCap||0)>=pastMcap:(pair.priceChange?.h1||0)>0;
+  }
+  return s;
+}
+
+// ── Score de risque (0-100, plus haut = plus risqué) ──────────────────────────
+function calcRisk(tok, rug){
+  let risk=0;
+  const reasons=[];
+  // Top 10 holders concentrés
+  if(tok.top10pct!=null){
+    if(tok.top10pct>50){risk+=30;reasons.push('Top10 > 50%');}
+    else if(tok.top10pct>30){risk+=15;reasons.push('Top10 > 30%');}
+  }
+  // Dev a vendu
+  if(tok.devSold===true){risk+=25;reasons.push('Dev a vendu');}
+  // Liquidité faible vs MCap
+  if(tok.mcap&&tok.liquidity){
+    const r=tok.mcap/tok.liquidity;
+    if(r>20){risk+=20;reasons.push('Ratio M/L > 20×');}
+    else if(r>10){risk+=10;reasons.push('Ratio M/L > 10×');}
+  }
+  // Mint ou freeze actifs
+  if(tok.scores.no_mint===false){risk+=20;reasons.push('Mint actif');}
+  if(tok.scores.no_freeze===false){risk+=20;reasons.push('Freeze actif');}
+  // Bundle détecté
+  if(tok.scores.no_bundle===false){risk+=15;reasons.push('Bundle détecté');}
+  // LP non verrouillée
+  if(tok.scores.lp_locked===false){risk+=20;reasons.push('LP non locked');}
+  // Signal de dump
+  const dump=dumpSignal(tok);
+  if(dump==='strong'){risk+=25;reasons.push('Dump en cours');}
+  else if(dump==='mild'){risk+=10;reasons.push('Pression vendeuse');}
+  // RugCheck score élevé (RugCheck : plus haut = plus risqué dans leur échelle inversée)
+  if(rug?.score_normalised!=null&&rug.score_normalised>60){risk+=15;reasons.push('RugCheck risqué');}
+  if(tok.sniperPct!=null){
+    if(tok.sniperPct>25){risk+=20;reasons.push('Snipers > 25%');}
+    else if(tok.sniperPct>10){risk+=10;reasons.push('Snipers > 10%');}
+  }
+  // Bundles au lancement (réseaux de wallets liés RugCheck)
+  if(tok.bundlePct!=null){
+    if(tok.bundlePct>30){risk+=20;reasons.push('Bundle > 30% du supply');}
+    else if(tok.bundlePct>15){risk+=10;reasons.push('Bundle > 15% du supply');}
+  }
+  if(tok.phishingPct!=null){
+    if(tok.phishingPct>40){risk+=20;reasons.push('Holders gonflés > 40%');}
+    else if(tok.phishingPct>20){risk+=10;reasons.push('Holders gonflés > 20%');}
+  }
+  if(tok.devWalletAge!=null&&tok.devWalletAge<86400000){risk+=15;reasons.push('Wallet dev < 24h');}
+  // Dev fiché (liste des serial deployers / tribute devs)
+  if(tok.riskyDev){risk+=25;reasons.push('Dev fiché : '+tok.riskyDev);}
+  // Tribute token (nom = KOL connu) — risque modéré seul, fort en combo avec dev fiché
+  if(tok.tributeKol){
+    risk+=10;reasons.push('Tribute token ('+tok.tributeKol+')');
+    if(tok.riskyDev){risk+=15;reasons.push('🚨 Combo tribute + dev fiché');}
+  }
+  return{risk:Math.min(100,risk),reasons};
+}
+
+function mkTok(pump,dex,rug,now,dlmm,boosts,trend,holderCount=null,devInfo=null,sp=null){
+  const pair=dex?.pairs?.filter(x=>x.chainId==='solana').sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0))[0];
+  const mint=pump?.mint||pair?.baseToken?.address||'';
+  const sc=scoreIt(pump,dex,rug,mint,dlmm,boosts,trend,holderCount,devInfo);
+  const total=calcTotal(sc);
+  const boostArr=Array.isArray(boosts)?boosts:[];
+  const bEntry=boostArr.find(x=>(x.tokenAddress||'').toLowerCase()===mint.toLowerCase());
+  const boostAmt=bEntry?(bEntry.totalAmount||bEntry.amount||0):0;
+  // Vélocités (calculées AVANT de pousser le nouveau snapshot)
+  const hVel=heliusFloor[mint]?null:holderVelocity(mint, holderCount, now); // plancher → vélocité non significative
+  const vVel=volVelocity(mint, pair?.volume?.h1, now);
+  const tok={
+    address:mint,
+    symbol:pump?.symbol||pair?.baseToken?.symbol||'???',
+    name:pump?.name||pair?.baseToken?.name||'—',
+    mcap:pump?.usd_market_cap||pair?.marketCap||pair?.fdv,
+    priceUsd:pair?.priceUsd,
+    age:now-(pump?.created_timestamp||pair?.pairCreatedAt||now),
+    liquidity:pair?.liquidity?.usd,
+    vol1h:pair?.volume?.h1, vol24h:pair?.volume?.h24,
+    vol6h:pair?.volume?.h6,
+    volAll:(()=>{
+      const v24=pair?.volume?.h24||0,v6=pair?.volume?.h6||0,v1=pair?.volume?.h1||0;
+      return v24>0?v24:v6>0?v6:v1;
+    })(),
+    chg1h:pair?.priceChange?.h1, chg24h:pair?.priceChange?.h24,
+    chg6h:pair?.priceChange?.h6,
+    buys1h:pair?.txns?.h1?.buys,sells1h:pair?.txns?.h1?.sells,
+    boostAmt,
+    hVel, vVel,
+    hasDLMM:dlmm,
+    dexNames:listDexes(dex),
+    top10pct:top10pct(rug),
+    holderCount,
+    holderFloor:heliusFloor[mint]===true,
+    holderSrc:holderSrc[mint]||null,
+    rugScore:rug?.score_normalised??rug?.score,
+    scores:sc,total,
+    url:pair?.url||`https://dexscreener.com/solana/${mint}`,
+    twitterUrl:null, websiteUrl:null,
+    devAddr:devInfo?.devAddr||null,
+    devPct:devInfo?.devPct||null,
+    devBal:devInfo?.devBal||null,
+    devSold:devInfo?.devSold??null,
+    devWalletAge:devInfo?.devWalletAge??null,
+    sniperPct:sp?.sniperPct??null,
+    bundlePct:sp?.bundlePct??null,
+    bundleWallets:sp?.bundleWallets??null,
+    sniperCount:sp?.sniperCount??null,
+    phishingPct:sp?.phishingPct??null,
+    phishingNote:sp?.phishingNote||'',
+    riskyDev:riskyDevLabel(devInfo?.devAddr),
+    tributeKol:detectTributeToken(pump?.name||pair?.baseToken?.name||'',pump?.symbol||pair?.baseToken?.symbol||''),
+  };
+  // Score de risque + signal de dump
+  const rk=calcRisk(tok, rug);
+  tok.risk=rk.risk;
+  tok.riskReasons=rk.reasons;
+  tok.dump=dumpSignal(tok);
+  // Pousser le snapshot dans l'historique pour les prochains calculs de vélocité
+  pushHistory(mint,{ts:now,mcap:tok.mcap,holderCount,vol1h:tok.vol1h,price:parseFloat(tok.priceUsd)||null,buys:tok.buys1h,sells:tok.sells1h,total:tok.total,risk:tok.risk});
+  return tok;
+}
+
+function checkAlert(tok,now){
+  if(tok.total>=minScore&&!alerted.has(tok.address)){
+    alerted.add(tok.address);beep();
+    alerts.unshift({...tok,alertTs:now,alertPrice:parseFloat(tok.priceUsd)||null});
+    if(alerts.length>100)alerts.pop();
+    saveAlerts();
+    notifyAlert(tok);
+  }
+}
+
+// ── Alertes de SORTIE (dump sur tokens suivis) ────────────────────────────────
+let exitAlerted=new Set();
+function beepExit(){/* son retiré */}
+function checkExitAlert(tok,now){
+  const prot=watchlist.has(tok.address)||forceAddresses.has(tok.address);
+  if(!prot)return;
+  const trigger=tok.dump==='strong'||(tok.chg1h||0)<-20;
+  if(trigger&&!exitAlerted.has(tok.address)){
+    exitAlerted.add(tok.address);
+    beepExit();
+    alerts.unshift({...tok,alertTs:now,alertType:'exit',alertPrice:parseFloat(tok.priceUsd)||null});
+    if(alerts.length>100)alerts.pop();
+    saveAlerts();renderAlerts();upd();
+    if(notifEnabled&&('Notification'in window)&&Notification.permission==='granted'){
+      try{
+        const n=new Notification(`⚠️ SORTIE — ${tok.symbol}`,{body:`Dump détecté · Chg1h ${fp(tok.chg1h)}`,tag:'exit-'+tok.address});
+        n.onclick=()=>{window.focus();n.close();};
+      }catch{}
+    }
+  }
+  if(!trigger)exitAlerted.delete(tok.address);
+}
+
+// ── Notifications navigateur ──────────────────────────────────────────────────
+let notifEnabled=localStorage.getItem('meme_notif')==='1';
+function requestNotif(){
+  if(!('Notification'in window)){showToast('Notifications non supportées');return;}
+  Notification.requestPermission().then(p=>{
+    notifEnabled=(p==='granted');
+    localStorage.setItem('meme_notif',notifEnabled?'1':'0');
+    updateNotifBtn();
+    if(notifEnabled){showToast('🔔 Notifications activées');try{new Notification('Meme Radar',{body:'Notifications activées ✓'});}catch{}}
+  });
+}
+function updateNotifBtn(){
+  const b=document.getElementById('notifBtn');
+  if(!b)return;
+  const granted=('Notification'in window)&&Notification.permission==='granted'&&notifEnabled;
+  b.textContent=granted?'🔔 Notifications activées ✓':'🔔 Activer les notifications';
+  b.classList.toggle('save',granted);
+}
+function notifyAlert(tok){
+  if(!notifEnabled||!('Notification'in window)||Notification.permission!=='granted')return;
+  if(document.visibilityState==='visible')return;
+  try{
+    const n=new Notification(`🚨 ${tok.symbol} — ${tok.total}/${maxScore()}`,{
+      body:`MCap ${fn(tok.mcap)} · Liq ${fn(tok.liquidity)}${tok.hasDLMM===true?' · DLMM✓':''}${tok.risk!=null?' · Risque '+tok.risk:''}`,
+      tag:tok.address,
+    });
+    n.onclick=()=>{window.focus();n.close();};
+  }catch{}
+}
+
+
+// ── Persistance des réglages ──────────────────────────────────────────────────
+function saveSettings(){
+  try{localStorage.setItem('meme_settings',JSON.stringify({
+    v12:true, crit:[...activeCrit], minScore, minHolders, filterMinAge, maxAgeH, filterMaxRatio,
+    dlmmOnly, dlmmFirst:(typeof dlmmFirst!=='undefined'?dlmmFirst:false),
+    sortCol, sortDir,
+  }));}catch{}
+}
+
+// ── Seuil de holders configurable (critère ⑨) ─────────────────────────────────
+function updateHoldersLabel(){
+  const c=CR.find(x=>x.id==='holders_min');
+  if(c)c.lbl='≥ '+minHolders+' holders au total';
+}
+function setMinHolders(v){
+  minHolders=parseInt(v)||850;
+  updateHoldersLabel();
+  // Re-scorer immédiatement les tokens déjà affichés, sans refetch
+  tokens.forEach(t=>{
+    if(!t.scores)return;
+    if(t.holderCount!=null)t.scores.holders_min=t.holderCount>=minHolders;
+    t.total=calcTotal(t.scores);
+    if(typeof lastTotals!=='undefined')lastTotals[t.address]=t.total;
+  });
+  if(typeof initCritPanel==='function')initCritPanel();
+  render();
+  if(typeof renderWatch==='function')renderWatch();
+  upd();
+}
+function loadSettings(){
+  try{
+    const s=JSON.parse(localStorage.getItem('meme_settings')||'null');
+    if(!s)return;
+    if(Array.isArray(s.crit)&&s.crit.length){activeCrit=new Set(s.crit);
+      if(!s.v12){activeCrit.add('dev_clean');activeCrit.add('not_tribute');}} // migration : anciens réglages sans les critères ⑪⑫
+    if(s.minScore){minScore=s.minScore;
+      const ms=document.getElementById('ms');if(ms)ms.value=String(s.minScore);
+      const thr=document.getElementById('thr');if(thr)thr.textContent=s.minScore;
+      const thr2=document.getElementById('thr2');if(thr2)thr2.textContent=s.minScore;}
+    if(s.minHolders){minHolders=parseInt(s.minHolders)||850;updateHoldersLabel();
+      const mh=document.getElementById('minHolders');if(mh)mh.value=String(minHolders);}
+    if(s.filterMinAge!=null){filterMinAge=s.filterMinAge;const el=document.getElementById('minAge');if(el)el.value=String(s.filterMinAge);}
+    if(s.maxAgeH){maxAgeH=s.maxAgeH;const el=document.getElementById('maxAge');if(el)el.value=String(s.maxAgeH);}
+    if(s.filterMaxRatio!=null){filterMaxRatio=s.filterMaxRatio;const el=document.getElementById('maxRatio');if(el)el.value=String(s.filterMaxRatio);}
+    if(s.dlmmOnly){dlmmOnly=true;const b=document.getElementById('dlmmOnlyBtn');
+      if(b){b.classList.add('on');b.style.borderColor='#fde68a';b.style.color='#fde68a';if(!b.textContent.includes('✓'))b.textContent+=' ✓';}}
+    if(s.dlmmFirst&&typeof dlmmFirst!=='undefined'){dlmmFirst=true;const b=document.getElementById('dlmmFirstBtn');
+      if(b){b.style.borderColor='#fde68a';b.style.color='#fde68a';if(!b.textContent.includes('✓'))b.textContent+=' ✓';}}
+    if(s.sortCol){sortCol=s.sortCol;sortDir=s.sortDir||-1;
+      const sel=document.getElementById('sortSel');if(sel)sel.value=sortCol;
+      const ind=document.getElementById('s-'+sortCol);if(ind)ind.textContent=sortDir===-1?'▼':'▲';}
+  }catch{}
+}
+
+// ── Graphique d'évolution (fiche détail) ──────────────────────────────────────
+function detailChart(addr){
+  const h=(history[addr]||[]).filter(p=>p.price!=null&&p.price>0);
+  if(h.length<3)return '<div style="font-size:10px;color:#3a5070;text-align:center;padding:8px 0">Graphique disponible après 3 scans du token</div>';
+  const w=220,ht=64,pad=4;
+  const prices=h.map(p=>p.price);
+  const min=Math.min(...prices),max=Math.max(...prices),range=max-min||1;
+  const xs=prices.map((_,i)=>pad+Math.round(i/(prices.length-1)*(w-2*pad)));
+  const ys=prices.map(v=>pad+Math.round((ht-2*pad)-((v-min)/range)*(ht-2*pad)));
+  const up=prices[prices.length-1]>=prices[0];
+  const col=up?'#4ade80':'#f87171';
+  const chg=((prices[prices.length-1]-prices[0])/prices[0]*100);
+  const t0=new Date(h[0].ts).toLocaleTimeString().slice(0,5);
+  const t1=new Date(h[h.length-1].ts).toLocaleTimeString().slice(0,5);
+  return `<svg width="100%" height="64" viewBox="0 0 ${w} ${ht}" preserveAspectRatio="none" style="display:block;background:#0b122040;border-radius:6px">
+    <polyline points="${xs.map((x,i)=>x+','+ys[i]).join(' ')}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>
+  <div style="display:flex;justify-content:space-between;font-size:9px;color:#6a80a0;margin-top:3px">
+    <span>${t0}</span>
+    <span style="color:${col};font-weight:700">${chg>=0?'+':''}${chg.toFixed(1)}% · ${h.length} scans</span>
+    <span>${t1}</span>
+  </div>`;
+}
+
+// ── Export / Import de configuration ──────────────────────────────────────────
+function exportConfig(){
+  const cfg={
+    v:1, exported:new Date().toISOString(),
+    settings:JSON.parse(localStorage.getItem('meme_settings')||'{}'),
+    watchlist:[...watchlist],
+    force:[...forceAddresses],
+    scanInt:SCAN_INT,
+    heliusKey:heliusKey||'',
+  };
+  const a=document.createElement('a');
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(cfg,null,2));
+  a.download='meme_radar_config.json';a.click();
+}
+function importConfig(input){
+  const f=input.files&&input.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const cfg=JSON.parse(rd.result);
+      if(cfg.settings)localStorage.setItem('meme_settings',JSON.stringify(cfg.settings));
+      if(Array.isArray(cfg.watchlist)){watchlist=new Set(cfg.watchlist);localStorage.setItem('meme_watchlist',JSON.stringify(cfg.watchlist));}
+      if(Array.isArray(cfg.force)){forceAddresses=new Set(cfg.force);localStorage.setItem('meme_force',JSON.stringify(cfg.force));}
+      if(cfg.scanInt>=30){SCAN_INT=cfg.scanInt;localStorage.setItem('meme_scan_int',String(cfg.scanInt));const el=document.getElementById('scanInt');if(el)el.value=String(cfg.scanInt);}
+      if(cfg.heliusKey&&heliusExtractUUID(cfg.heliusKey)){heliusKey=cfg.heliusKey;localStorage.setItem('helius_api_key',cfg.heliusKey);initHeliusUI();}
+      loadSettings();updateForceCount();upd();render();
+      alert('✓ Configuration importée avec succès');
+    }catch(e){alert('❌ Fichier invalide : '+e.message);}
+    input.value='';
+  };
+  rd.readAsText(f);
+}
+// ── Main scan ─────────────────────────────────────────────────────────────────
+async function runScan(){
+  scanCycle++;
+  setStat('warn','Scan en cours — collecte des sources…');
+  try{
+    const now=Date.now();
+
+    // Fetch sources en parallèle
+    const[profiles, boosts, trend]=await Promise.all([
+      getDexProfiles(),
+      getBoosts(),
+      getJupTrend(),
+    ]);
+
+    // Fusionner toutes les sources en une map de mints uniques
+    const mintMap=await collectMints(profiles, boosts, trend);
+
+    if(!mintMap.size){
+      setStat('err','DexScreener inaccessible — vérifie ta connexion');return;
+    }
+
+    setStat('warn',`Analyse de ${mintMap.size} tokens…`);
+    const res=[];
+    let enrichedCnt=0;
+    let processed=0, rejAge=0, rejMcap=0, rejNoData=0;
+
+    async function processMint(mint, meta){
+      const[dex,rug]=await Promise.all([getDex(mint),getRug(mint)]);
+      const[holderCount,devInfo]=await Promise.all([
+        fetchHolderCount(mint,rug),
+        fetchDevInfo(mint,rug),
+      ]);
+      const pair=dex?.pairs?.filter(x=>x.chainId==='solana').sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0))[0];
+      const pairAge=pair?.pairCreatedAt?now-pair.pairCreatedAt:null;
+      const isProtected=watchlist.has(mint)||meta.fromForce;
+      if(!isProtected&&pairAge!==null&&pairAge>maxAgeH*3600000)return{rej:'age'};
+      const dlmm=detectDLMM(dex);
+      const sp=await calcSniperPhishing(mint, rug, holderCount);
+      const tok=mkTok(null,dex,rug,now,dlmm,boosts,trend,holderCount,devInfo,sp);
+      if(!tok.address)return{rej:'nodata'};
+      if(!isProtected&&(tok.mcap||0)<80000)return{rej:'mcap'};
+      const links=meta.links||[];
+      tok.twitterUrl=links.find(l=>l.type==='twitter'||l.type==='x')?.url
+        ||pair?.info?.socials?.find(s=>s.type==='twitter')?.url||null;
+      tok.websiteUrl=links.find(l=>l.type==='website')?.url
+        ||pair?.info?.websites?.[0]?.url||null;
+      return{tok};
+    }
+
+    // ── Scan ADAPTATIF : les tokens faibles (score < seuil au dernier passage)
+    // ne sont re-scannés qu'un cycle sur 3 ; leurs données précédentes sont
+    // réutilisées. Les tokens forts / watchlist / suivi manuel : chaque cycle.
+    const BATCH=4;
+    const allEntries=[...mintMap.entries()];
+    const entries=[];let reusedCnt=0;
+    for(const e of allEntries){
+      const[mn,mt]=e;
+      const prot=watchlist.has(mn)||mt.fromForce;
+      const weak=lastTotals[mn]!=null&&lastTotals[mn]<minScore;
+      const prevTok=tokens.find(x=>x.address===mn);
+      if(weak&&!prot&&(scanCycle%3!==0)&&prevTok){res.push(prevTok);reusedCnt++;}
+      else entries.push(e);
+    }
+    for(let i=0;i<entries.length;i+=BATCH){
+      if(!scanning)break;
+      const batch=entries.slice(i,i+BATCH);
+      const results=await Promise.all(
+        batch.map(([mint,meta])=>processMint(mint,meta).catch(()=>({rej:'nodata'})))
+      );
+      for(const r of results){
+        processed++;
+        if(r.rej==='age')rejAge++;
+        else if(r.rej==='mcap')rejMcap++;
+        else if(r.rej==='nodata')rejNoData++;
+        else if(r.tok){res.push(r.tok);lastTotals[r.tok.address]=r.tok.total;checkAlert(r.tok,now);checkExitAlert(r.tok,now);}
+      }
+      tokens=res.sort((a,b)=>b.total-a.total);
+      render();upd();
+      setStat('warn',`Analyse ${Math.min(i+BATCH,entries.length)}/${entries.length}…`);
+    }
+
+    // ── ENRICHISSEMENT ciblé : Jupiter · GeckoTerminal · GoPlus ──
+    // Top 12 tokens (score ≥ seuil, watchlist, suivi manuel) pour rester
+    // dans les limites de débit (GeckoTerminal ≈ 30 appels/min).
+    const candidates=res.filter(t=>!t.enriched&&(t.total>=minScore||watchlist.has(t.address)||forceAddresses.has(t.address)))
+      .sort((a,b)=>b.total-a.total).slice(0,12);
+    if(candidates.length&&scanning){
+      setStat('warn',`Enrichissement de ${candidates.length} tokens (Jupiter · Gecko · GoPlus)…`);
+      for(let i=0;i<candidates.length;i+=3){
+        if(!scanning)break;
+        await Promise.all(candidates.slice(i,i+3).map(async t=>{
+          const[jupI,gI,gpI,tkI]=await Promise.all([
+            getJupInfo(t.address).catch(()=>null),
+            getGeckoData(t.address).catch(()=>null),
+            getGoPlus(t.address).catch(()=>null),
+            checkRecycledTicker(t.symbol,t.address,Date.now()-(t.age||0)).catch(()=>null),
+          ]);
+          enrichTok(t,jupI,gI,gpI,tkI);
+          // Repêchage des liens sociaux manquants via GeckoTerminal
+          if(!t.twitterUrl&&!t.websiteUrl){
+            const gi=await getGeckoInfo(t.address).catch(()=>null);
+            if(gi){if(gi.twitter)t.twitterUrl=gi.twitter;if(gi.website)t.websiteUrl=gi.website;}
+          }
+          if(t.twitterUrl&&t.xFollowers==null){
+            const xc=await getXCommunity(t.twitterUrl).catch(()=>null);
+            if(xc){if(xc.community)t.xCommunity=true;else{t.xFollowers=xc.followers;t.xHandle=xc.handle;}}
+          }
+          enrichedCnt++;
+        }));
+      }
+    }
+
+    tokens=res.sort((a,b)=>b.total-a.total);
+    render();renderAlerts();upd();
+    saveHistory();
+    const ageTxt=maxAgeH>=168?'7j':maxAgeH+'h';
+    const rejTxt=(rejAge||rejMcap)?` · rejetés: ${rejAge} (>${ageTxt}), ${rejMcap} (<80K$)`:'';
+    const adaptTxt=reusedCnt>0?` · ${reusedCnt} en cache adaptatif`:'';
+    const enrichTxt=enrichedCnt>0?` · ${enrichedCnt} enrichis`:'';
+    setStat('ok',`OK · ${new Date().toLocaleTimeString()} · ${tokens.length} affichés / ${mintMap.size} analysés${rejTxt}${adaptTxt}${enrichTxt}`);
+  }catch(e){setStat('err',e.message);}
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+
+
+
+
+
+function setStat(t,m){const e=document.getElementById('sm');e.className=t;e.textContent=m;}
+
+// ── Detail ────────────────────────────────────────────────────────────────────
+
+
+
+// ── Manual ────────────────────────────────────────────────────────────────────
+async function doManual(){
+  let addr=cleanAddr(document.getElementById('adi').value);
+  const out=document.getElementById('mr');
+  if(!addr){out.style.color='#f87171';out.textContent='⚠ Adresse vide.';return;}
+  if(!validAddr(addr)){out.style.color='#f87171';out.textContent=`⚠ Adresse invalide (${addr.length} car.).\nSolana = 32–44 caractères base58.\nLes adresses pump.fun se terminent par "pump" — c'est normal.`;return;}
+  const btn=document.getElementById('ab');btn.disabled=true;btn.textContent='En cours…';
+  out.style.color='#4a5568';out.textContent='⟳ Récupération DexScreener + RugCheck + Solscan…';
+  try{
+    const now=Date.now();
+    const[dex,rug,boosts,trend,profList]=await Promise.all([getDex(addr),getRug(addr),getBoosts(),getJupTrend(),getDexProfiles()]);
+    const[holderCount,devInfo]=await Promise.all([fetchHolderCount(addr,rug),fetchDevInfo(addr,rug)]);
+    const pair=dex?.pairs?.filter(x=>x.chainId==='solana').sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0))[0];
+    if(!pair&&!rug){
+      out.style.color='#f87171';
+      out.textContent=ENV==='restricted'
+        ?'❌ APIs bloquées dans le viewer Claude.\n\n✅ SOLUTION :\n1. Télécharge ce fichier HTML\n2. Double-clique → ouvre dans Chrome\n3. Relance l\'analyse\n\n🔗 https://dexscreener.com/solana/'+addr+'\n🔗 https://rugcheck.xyz/tokens/'+addr
+        :'❌ Token introuvable. Vérifie l\'adresse.\nLes tokens très récents (<30 min) peuvent ne pas encore être indexés.';
+      btn.disabled=false;btn.textContent='🔎 Analyser';return;
+    }
+    const dlmm=detectDLMM(dex);
+    const sp=await calcSniperPhishing(addr, rug, holderCount);
+    const tok=mkTok(null,dex,rug,now,dlmm,boosts||[],trend,holderCount,devInfo,sp);
+    const[jupI,gI,gpI,tkI]=await Promise.all([getJupInfo(addr).catch(()=>null),getGeckoData(addr).catch(()=>null),getGoPlus(addr).catch(()=>null),checkRecycledTicker(tok.symbol,addr,Date.now()-(tok.age||0)).catch(()=>null)]);
+    enrichTok(tok,jupI,gI,gpI,tkI);
+    if(!tok.twitterUrl&&!tok.websiteUrl){
+      const gi=await getGeckoInfo(addr).catch(()=>null);
+      if(gi){if(gi.twitter)tok.twitterUrl=gi.twitter;if(gi.website)tok.websiteUrl=gi.website;}
+    }
+    if(tok.twitterUrl){
+      const xc=await getXCommunity(tok.twitterUrl).catch(()=>null);
+      if(xc){if(xc.community)tok.xCommunity=true;else{tok.xFollowers=xc.followers;tok.xHandle=xc.handle;}}
+    }
+    tok.address=addr;
+    if(rug?.tokenMeta){if(tok.symbol==='???')tok.symbol=rug.tokenMeta.symbol||'???';if(tok.name==='—')tok.name=rug.tokenMeta.name||'—';}
+    // Social links from profiles
+    const profEntry=(Array.isArray(profList)?profList:[]).find(p=>p.tokenAddress===addr);
+    const pLinks=profEntry?.links||[];
+    tok.twitterUrl=pLinks.find(l=>l.type==='twitter'||l.type==='x')?.url||null;
+    tok.websiteUrl=pLinks.find(l=>l.type==='website')?.url||null;
+    const risks=(rug?.risks||[]).map(r=>r.name).filter(Boolean);
+    out.style.color='#7ee8a2';
+    out.textContent=[
+      `🔍 ${tok.symbol} — ${tok.name}`,``,
+      `📊 MARCHÉ`,
+      `  Prix         : ${fpr(tok.priceUsd)}`,
+      `  Market Cap   : ${fn(tok.mcap)}`,
+      `  Liquidité    : ${fn(tok.liquidity)}`,
+      `  Volume 1h    : ${fn(tok.vol1h)}`,
+      `  Volume 24h   : ${fn(tok.vol24h)}`,
+      `  Vol. lancement: ${fn(tok.volAll)}`,
+      `  Chg 1h       : ${fp(tok.chg1h)}`,
+      `  Buys / Sells : ${tok.buys1h??'—'} / ${tok.sells1h??'—'}`,
+      `  Âge          : ${tok.age>0?fa(tok.age):'<1m'}`,``,
+      `🚀 SIGNAUX`,
+      `  Boost DexScr : ${tok.boostAmt>0?fn(tok.boostAmt)+' actif':'Aucun boost'}`,
+      `  DEX actifs   : ${tok.dexNames}`,
+      `  DLMM Meteora : ${tok.hasDLMM===true?'✅ DLMM pool trouvée (via DexScreener)':tok.hasDLMM===false?'❌ Aucun pool DLMM':'⚪ Inconnu'}`,
+      `  Top 10 hold. : ${tok.top10pct!=null?tok.top10pct+'%'+(tok.top10pct<20?' ✅':tok.top10pct<30?' ⚠️':' ❌'):'⚪ Données partielles'}`,
+      `  Total holders: ${tok.holderCount!=null?tok.holderCount.toLocaleString()+(tok.holderCount>=minHolders?' ✅ (≥'+minHolders+')':' ❌ (<'+minHolders+')'):'⚪ Non disponible'}`,``,
+      `👨‍💻 WALLET DÉVELOPPEUR`,
+      `  Adresse     : ${tok.devAddr||'Non trouvé'}`,
+      `  Statut      : ${tok.devSold===true?'❌ A vendu':tok.devSold===false?'✅ Tient sa position':'⚪ Inconnu'}`,
+      `  % supply    : ${tok.devPct!=null?tok.devPct.toFixed(2)+'%':'—'}`,
+      `  Balance     : ${tok.devBal!=null?(tok.devBal>0?tok.devBal.toLocaleString()+' tokens':'0 → vendu'):'— (clé Helius requise)'}`,``,
+      `🛡️ SÉCURITÉ (RugCheck: ${tok.rugScore??'N/A'}/100)`,
+      ...CR.map(c=>{const v=tok.scores[c.id];return`  ${v===true?'✅':v===false?'❌':'⚪'} ${c.lbl}`;}),``,
+      `⚠️ RISQUES (${risks.length})`,
+      ...(risks.length?risks.map(r=>`  · ${r}`):[`  Aucun risque détecté`]),``,
+      `🏆 SCORE : ${tok.total}/${maxScore()}`,``,
+      ...(tok.twitterUrl||tok.websiteUrl?[
+        `🔗 RÉSEAUX`,
+        ...(tok.twitterUrl?[`  𝕏 Twitter : ${tok.twitterUrl}`]:[]),
+        ...(tok.websiteUrl?[`  🌐 Site    : ${tok.websiteUrl}`]:[]),``
+      ]:[]),
+      `🔗 https://dexscreener.com/solana/${addr}`,
+      `🔗 https://rugcheck.xyz/tokens/${addr}`,
+      `🔗 https://app.meteora.ag/dlmm?search=${addr}`,
+      `🔗 https://gmgn.ai/sol/token/${addr}`,
+    ].join('\n');
+    tokens=[tok,...tokens.filter(x=>x.address!==addr)];
+    window._manualTok=tok;
+    render();upd();
+    const oldBtn=document.getElementById('manualDetailBtn');if(oldBtn)oldBtn.remove();
+    out.insertAdjacentHTML('afterend','<button class="set-btn save" id="manualDetailBtn" style="width:100%;padding:11px;margin-top:8px" onclick="selT(\''+addr+'\')">📋 Voir la fiche détaillée</button>');
+  }catch(e){out.style.color='#f87171';out.textContent='❌ Erreur : '+e.message;}
+  btn.disabled=false;btn.textContent='🔎 Analyser';
+}
+
+// ── Controls ──────────────────────────────────────────────────────────────────
+function toggleSound(){}
+
+let toastTimer=null;
+function copyAddr(addr,btn){
+  if(!addr||addr.startsWith('ai-'))return;
+  navigator.clipboard.writeText(addr).then(()=>{
+    // Toast
+    const t=document.getElementById('toast');
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(()=>t.classList.remove('show'),2000);
+    // Button feedback
+    if(btn){const orig=btn.textContent;btn.textContent='✓ Copié!';btn.classList.add('copied');setTimeout(()=>{btn.textContent=orig;btn.classList.remove('copied');},2000);}
+  }).catch(()=>{
+    // Fallback pour navigateurs sans clipboard API
+    const el=document.createElement('textarea');
+    el.value=addr;el.style.position='fixed';el.style.opacity='0';
+    document.body.appendChild(el);el.select();document.execCommand('copy');
+    document.body.removeChild(el);
+    const t=document.getElementById('toast');t.classList.add('show');
+    clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2000);
+  });
+}
+function setVolume(v){}
+function setMinScore(v){
+  minScore=v;
+  document.getElementById('thr').textContent=v;
+  const thr2=document.getElementById('thr2');if(thr2)thr2.textContent=v;
+  // Vider alerted → re-checker tous les tokens existants avec le nouveau seuil
+  alerted.clear();
+  alerts=[];
+  const now=Date.now();
+  tokens.forEach(t=>{
+    const score=calcTotal(t.scores);
+    if(score>=minScore){
+      alerted.add(t.address);
+      alerts.push({...t,alertTs:now});
+    }
+  });
+  alerts.sort((a,b)=>b.alertTs-a.alertTs);
+  renderAlerts();upd();
+  if(alerts.length>0)beep();
+}
+function setScanInterval(v){
+  SCAN_INT=+v||45;
+  localStorage.setItem('meme_scan_int',String(SCAN_INT));
+}
+async function scanLoop(){
+  // Boucle séquentielle : le scan suivant ne démarre JAMAIS avant la fin du
+  // précédent + la temporisation. Plus aucun chevauchement de requêtes.
+  while(scanning){
+    await runScan();
+    if(!scanning)break;
+    cdV=SCAN_INT;
+    const cd=document.getElementById('scd');if(cd)cd.style.display='';
+    while(cdV>0&&scanning){
+      document.getElementById('cdn').textContent=cdV;
+      await new Promise(r=>setTimeout(r,1000));
+      cdV--;
+    }
+  }
+}
+function toggleScan(){
+  scanning=!scanning;
+  const b=document.getElementById('mb'),p=document.getElementById('pulse'),cd=document.getElementById('scd');
+  if(scanning){
+    b.className='mscan-btn stop';b.textContent='⏹ Stop';p.classList.add('live');cd.style.display='';
+    document.getElementById('cdn').textContent=SCAN_INT;
+    scanLoop();
+  }else{
+    b.className='mscan-btn go';b.textContent='▶ Scanner';
+    p.classList.remove('live');cd.style.display='none';setStat('','En pause');
+  }
+}
+
+
+// ── Criteria panel ────────────────────────────────────────────────────────────
+
+
+function toggleCrit(id){
+  if(activeCrit.has(id)){
+    if(activeCrit.size<=1)return; // keep at least 1
+    activeCrit.delete(id);
+  } else {
+    activeCrit.add(id);
+  }
+  const el=document.getElementById('ct-'+id);
+  if(el){
+    el.classList.toggle('active',activeCrit.has(id));
+    el.querySelector('.crit-cb').textContent=activeCrit.has(id)?'✓':'';
+  }
+  // Update counter
+  document.getElementById('activeCritCount').textContent=activeCrit.size;
+  // Update minScore select max options visibility
+  updateScoreSelect();
+  // Recompute totals on existing tokens without refetching
+  tokens=tokens.map(t=>({...t,total:calcTotal(t.scores)}));
+  tokens.sort((a,b)=>b.total-a.total);
+  render();
+  // Recheck alerts for updated totals
+  const now=Date.now();
+  tokens.forEach(t=>{
+    if(t.total>=minScore&&!alerted.has(t.address)){
+      alerted.add(t.address);beep();
+      alerts.unshift({...t,alertTs:now});if(alerts.length>100)alerts.pop();
+    }
+  });
+  renderAlerts();upd();
+  if(sel){const t=tokens.find(x=>x.address===sel);if(t)selT(sel);}
+}
+
+function toggleAllCrit(state){
+  CR.forEach(c=>{
+    const el=document.getElementById('ct-'+c.id);
+    if(state){
+      activeCrit.add(c.id);
+      if(el){el.classList.add('active');el.querySelector('.crit-cb').textContent='✓';}
+    } else {
+      // Keep at least first criterion
+      if(c.id!==CR[0].id){
+        activeCrit.delete(c.id);
+        if(el){el.classList.remove('active');el.querySelector('.crit-cb').textContent='';}
+      }
+    }
+  });
+  document.getElementById('activeCritCount').textContent=activeCrit.size;
+  updateScoreSelect();
+  tokens=tokens.map(t=>({...t,total:calcTotal(t.scores)})).sort((a,b)=>b.total-a.total);
+  render();renderAlerts();upd();
+}
+
+
+
+let critPanelOpen=true;
+
+
+
+// ════════════════════════════════════════════════════════════════════
+//  MOBILE UI LAYER — remplace les fonctions de rendu desktop
+// ════════════════════════════════════════════════════════════════════
+
+// Navigation onglets
+let curTab='live';
+function msw(id){
+  curTab=id;
+  document.querySelectorAll('.mtab').forEach(b=>b.classList.remove('on'));
+  document.getElementById('tab-'+id).classList.add('on');
+  ['live','alerts','watch','manual','settings'].forEach(p=>{
+    document.getElementById('p-'+p).classList.toggle('hidden',p!==id);
+  });
+  document.getElementById('liveCtrl').classList.toggle('hidden',id!=='live');
+  if(id==='watch')renderWatch();
+  if(id==='alerts')renderAlerts();
+}
+
+// Tri mobile (via select au lieu de colonnes cliquables)
+function setMobileSort(col){
+  sortCol=col;
+  sortDir=(col==='risk')?1:-1; // risque croissant, le reste décroissant
+  render();
+}
+
+// Construit une carte token
+function tokenCard(t){
+  const isPinned=watchlist.has(t.address);
+  const ratio=t.mcap&&t.liquidity?t.mcap/t.liquidity:null;
+  const rCls=ratio==null?'':ratio<5?'ratio-ok':ratio<10?'ratio-mid':'ratio-bad';
+  const dots=CR.map(c=>{const v=t.scores[c.id];const off=!activeCrit.has(c.id);
+    return`<div class="d ${off?'du':v===true?'dy':v===false?'dn2':'du'}" style="${off?'opacity:.25':''}">${off?'·':v===true?'✓':v===false?'✗':'·'}</div>`}).join('');
+  return`
+  <div class="card ${t.hasDLMM===true?'dlmm':''}" onclick="selT('${t.address}')">
+    <div class="card-top">
+      <div>
+        <div class="card-sym">${esc(t.symbol)}${isPinned?' 📍':''}${(()=>{const pn=posPnl(t);return pn!=null?`<span style="font-size:10px;font-weight:700;margin-left:5px;padding:1px 5px;border-radius:5px;background:${pn>=0?'#16a34a25':'#dc262625'};color:${pn>=0?'#4ade80':'#f87171'}">💼${pn>=0?'+':''}${pn.toFixed(0)}%</span>`:''})()}</div>
+        <div class="card-name">${esc(t.name).slice(0,28)}</div>
+      </div>
+      <div class="card-score"><span class="pill ${pc(t.total)}">${t.total}/${maxScore()}</span>${trajArrow(t)}</div>
+    </div>
+    <div class="card-grid">
+      <div class="cm"><span class="cm-l">MCap</span><span class="cm-v">${fn(t.mcap)}</span></div>
+      <div class="cm"><span class="cm-l">Liq</span><span class="cm-v">${fn(t.liquidity)}</span></div>
+      <div class="cm"><span class="cm-l">M/L</span><span class="cm-v ${rCls}">${ratio!=null?ratio.toFixed(1)+'×':'—'}</span></div>
+      <div class="cm"><span class="cm-l">Chg 1h</span><span class="cm-v ${(t.chg1h||0)>=0?'up':'dn'}">${fp(t.chg1h)}</span></div>
+      <div class="cm"><span class="cm-l">H/min</span><span class="cm-v ${t.hVel>5?'vel-pos':t.hVel<0?'vel-neg':'vel-neu'}">${t.hVel!=null?(t.hVel>0?'+':'')+t.hVel.toFixed(1):'—'}</span></div>
+      <div class="cm"><span class="cm-l">Holders</span><span class="cm-v ${t.holderCount==null?'':t.holderCount>=minHolders?'hld-ok':'hld-low'}">${t.holderFloor?'≥':''}${fmtH(t.holderCount)}</span></div>
+      <div class="cm"><span class="cm-l">Âge</span><span class="cm-v">${t.age>0?fa(t.age):'<1m'}</span></div>
+      <div class="cm"><span class="cm-l">Vol ↺</span><span class="cm-v" style="color:#fb923c">${fn(t.volAll)}</span></div>
+      <div class="cm"><span class="cm-l">Top10%</span><span class="cm-v">${t.top10pct!=null?t.top10pct+'%':'—'}</span></div>
+      <div class="cm"><span class="cm-l">Snipe%</span><span class="cm-v" style="color:${t.sniperPct>25?'#f87171':t.sniperPct>10?'#fbbf24':t.sniperPct!=null?'#4ade80':'#6a80a0'}">${t.sniperPct!=null?t.sniperPct+'%':t.sniperCount?'~'+t.sniperCount+'w':'—'}</span></div>
+      <div class="cm"><span class="cm-l">Phish%</span><span class="cm-v" style="color:${t.phishingPct>40?'#f87171':t.phishingPct>20?'#fbbf24':t.phishingPct!=null?'#4ade80':'#6a80a0'}">${t.phishingPct!=null?t.phishingPct+'%':'—'}</span></div>
+    </div>
+    <div class="card-badges">
+      ${t.risk!=null?`<span class="risk-badge ${t.risk>=60?'risk-hi':t.risk>=30?'risk-mid':'risk-lo'}">Risque ${t.risk}</span>`:''}
+      ${t.hasDLMM===true?'<span class="badge-dlmm">DLMM ✓</span>':''}
+      ${t.boostAmt>0?`<span class="badge-boost">Boost ${fn(t.boostAmt)}</span>`:''}
+      ${t.dump?'<span class="badge-dump">⚠ Dump</span>':''}${t.wash==='high'?'<span class="badge-dump">🌀 Wash</span>':''}${t.jupSus?'<span class="badge-dump">⛔ Suspect</span>':''}${t.ticker&&t.ticker.recycled?'<span class="badge-dump">♻️ Recyclé</span>':''}
+    </div>
+    <div class="dots">${dots}</div>
+    <div class="card-actions" onclick="event.stopPropagation()">
+      <a class="ca-btn ca-gmgn" href="https://gmgn.ai/sol/token/${t.address}" target="_blank">GMGN</a>
+      ${t.twitterUrl?`<a class="ca-btn" style="flex:0 0 auto;color:#7ab8f5;border-color:#0369a150" href="${t.twitterUrl}" target="_blank">𝕏</a>`:''}
+      ${t.websiteUrl?`<a class="ca-btn" style="flex:0 0 auto" href="${t.websiteUrl}" target="_blank">🌐</a>`:''}
+      <button class="ca-btn" onclick="copyAddr('${t.address}',this)">📋 Copier</button>
+      <button class="ca-btn ca-pin ${isPinned?'pinned':''}" onclick="togglePin('${t.address}',this)">${isPinned?'📍 Suivi':'📌 Suivre'}</button>
+    </div>
+  </div>`;
+}
+
+// Render Live
+function render(){
+  const cards=document.getElementById('liveCards'),em=document.getElementById('liveEmpty');
+  const disp=filtered(sorted(tokens));
+  if(!disp.length){cards.classList.add('hidden');em.classList.remove('hidden');return;}
+  em.classList.add('hidden');cards.classList.remove('hidden');
+  cards.innerHTML=disp.map(tokenCard).join('');
+}
+
+// Render Alerts
+function renderAlerts(){
+  const cards=document.getElementById('alertsCards'),em=document.getElementById('alertsEmpty');
+  if(!alerts.length){cards.classList.add('hidden');em.classList.remove('hidden');return;}
+  em.classList.add('hidden');cards.classList.remove('hidden');
+  cards.innerHTML=alerts.map(t=>{
+    const isExit=t.alertType==='exit';
+    const crits=isExit?'':CR.filter(c=>t.scores[c.id]===true).map(c=>`<span class="badge-dlmm" style="color:${c.col};background:${c.bg};border-color:${c.bc}">${c.lbl}</span>`).join('');
+    // Performance depuis l'alerte
+    const cur=tokens.find(x=>x.address===t.address);
+    const curPrice=cur?parseFloat(cur.priceUsd):null;
+    let perfHtml='';
+    if(t.alertPrice&&curPrice){
+      const pct=((curPrice-t.alertPrice)/t.alertPrice)*100;
+      perfHtml=`<div style="font-size:12px;font-weight:800;color:${pct>=0?'#4ade80':'#f87171'};margin-top:2px">${pct>=0?'+':''}${pct.toFixed(1)}%</div>`;
+    }
+    return`
+    <div class="card" onclick="selT('${t.address}')" style="${isExit?'border-left:3px solid #f87171':''}">
+      <div class="card-top">
+        <div>
+          <div class="card-sym">${isExit?'⚠️ ':''}${esc(t.symbol)}${isExit?' <span style="font-size:11px;color:#f87171">SORTIE</span>':''}</div>
+          <div class="card-name">${esc(t.name).slice(0,28)}</div>
+        </div>
+        <div class="card-score">
+          ${isExit?'<span class="pill p01">DUMP</span>':`<span class="pill ${pc(t.total)}">${t.total}/${maxScore()}</span>`}
+          ${perfHtml}
+          <div style="font-size:9px;color:#6a80a0;margin-top:2px">${new Date(t.alertTs).toLocaleTimeString().slice(0,5)}</div>
+        </div>
+      </div>
+      <div class="card-grid">
+        <div class="cm"><span class="cm-l">MCap</span><span class="cm-v">${fn(t.mcap)}</span></div>
+        <div class="cm"><span class="cm-l">Liq</span><span class="cm-v">${fn(t.liquidity)}</span></div>
+        <div class="cm"><span class="cm-l">Holders</span><span class="cm-v">${t.holderFloor?'≥':''}${fmtH(t.holderCount)}</span></div>
+      </div>
+      ${crits?`<div class="card-badges" style="margin-top:6px">${crits}</div>`:''}
+      <div class="card-actions" onclick="event.stopPropagation()">
+        <a class="ca-btn ca-gmgn" href="https://gmgn.ai/sol/token/${t.address}" target="_blank">GMGN</a>
+        <a class="ca-btn" href="${t.url}" target="_blank">DexScreener ↗</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Render Watchlist
+function renderWatch(){
+  const cards=document.getElementById('watchCards'),em=document.getElementById('watchEmpty');
+  const wt=tokens.filter(t=>watchlist.has(t.address));
+  if(!wt.length){cards.classList.add('hidden');em.classList.remove('hidden');return;}
+  em.classList.add('hidden');cards.classList.remove('hidden');
+  cards.innerHTML=wt.map(tokenCard).join('');
+}
+
+// Compteurs onglets
+function upd(){
+  document.getElementById('cl').textContent='('+filtered(tokens).length+')';
+  document.getElementById('ca').textContent='('+alerts.length+')';
+  document.getElementById('cw').textContent='('+watchlist.size+')';
+}
+
+function delTok(addr){
+  tokens=tokens.filter(t=>t.address!==addr);
+  if(sel===addr)closeD();
+  render();upd();
+}
+
+
+// Détail (bottom sheet)
+function selT(addr){
+  const t=tokens.find(x=>x.address===addr)||alerts.find(x=>x.address===addr)||window._manualTok;
+  if(!t)return;
+  sel=addr;
+  document.getElementById('dsy').textContent=t.symbol;
+  document.getElementById('dn2').textContent=t.name;
+  const ratio=t.mcap&&t.liquidity?(t.mcap/t.liquidity):null;
+  const devStatus=t.devSold===true?'<span class="dev-sold">❌ A vendu</span>':t.devSold===false?'<span class="dev-holds">✅ Tient</span>':'<span class="dev-unk">⚠️ Inconnu</span>';
+  const critRows=CR.map(c=>{const v=t.scores[c.id];const off=!activeCrit.has(c.id);
+    const icon=off?'<span style="color:#3a5070">○</span>':v===true?'<span style="color:#4ade80">✓</span>':v===false?'<span style="color:#f87171">✗</span>':'<span style="color:#3a5070">·</span>';
+    return`<div class="scr">${icon} <span style="${off?'opacity:.4':''}">${c.lbl}</span></div>`}).join('');
+  const body=`
+    <div class="sheet-sec">
+      <div class="sheet-big"><div class="n" style="color:${fc(t.total)}">${t.total}/${maxScore()}</div><div class="l">score</div></div>
+    </div>
+    <div class="sheet-sec">
+      <div class="sheet-sh">Marché</div>
+      <div class="sheet-row"><span class="k">Prix</span><span class="v">${t.priceUsd?'$'+(+t.priceUsd).toPrecision(4):'—'}</span></div>
+      <div class="sheet-row"><span class="k">Market Cap</span><span class="v">${fn(t.mcap)}</span></div>
+      <div class="sheet-row"><span class="k">Liquidité</span><span class="v">${fn(t.liquidity)}</span></div>
+      <div class="sheet-row"><span class="k">MCap / Liq</span><span class="v ${ratio==null?'':ratio<5?'ratio-ok':ratio<10?'ratio-mid':'ratio-bad'}">${ratio!=null?ratio.toFixed(2)+'×':'—'}</span></div>
+      <div class="sheet-row"><span class="k">Volume 1h / 24h</span><span class="v">${fn(t.vol1h)} / ${fn(t.vol24h)}</span></div>
+      <div class="sheet-row"><span class="k">Chg 1h / 24h</span><span class="v"><span class="${(t.chg1h||0)>=0?'up':'dn'}">${fp(t.chg1h)}</span> / <span class="${(t.chg24h||0)>=0?'up':'dn'}">${fp(t.chg24h)}</span></span></div>
+      <div class="sheet-row"><span class="k">Âge</span><span class="v">${t.age>0?fa(t.age):'<1m'}</span></div>
+    </div>
+    <div class="sheet-sec">
+      <div class="sheet-sh">Évolution prix (session)</div>
+      ${detailChart(t.address)}
+    </div>
+    <div class="sheet-sec">
+      <div class="sheet-sh">Chart TradingView</div>
+      <button class="set-btn save" style="width:100%" onclick="mTvChart('${t.url}',this)">📈 Afficher le chart</button>
+      <div class="mtv-wrap"></div>
+    </div>
+    <div class="sheet-sec">
+      <div class="sheet-sh">Signaux</div>
+      <div class="sheet-row"><span class="k">DLMM Meteora</span><span class="v">${t.hasDLMM===true?'✓ Trouvée':t.hasDLMM===false?'✗ Aucune':'Inconnu'}</span></div>
+      <div class="sheet-row"><span class="k">Vélocité holders</span><span class="v ${t.hVel>5?'dev-holds':t.hVel<0?'dev-sold':''}">${t.hVel!=null?(t.hVel>0?'+':'')+t.hVel.toFixed(1)+'/min':'— (2 scans requis)'}</span></div>
+      <div class="sheet-row"><span class="k">Vélocité volume</span><span class="v">${t.vVel!=null?t.vVel.toFixed(2)+'×':'—'}</span></div>
+      <div class="sheet-row"><span class="k">Top 10 holders</span><span class="v">${t.top10pct!=null?t.top10pct+'%':'—'}</span></div>
+      <div class="sheet-row"><span class="k">Snipers / insiders</span><span class="v ${t.sniperPct>25?'dev-sold':t.sniperPct>10?'dev-unk':t.sniperPct!=null?'dev-holds':''}">${t.sniperPct!=null&&t.sniperPct>0?t.sniperPct+'%':''}${t.sniperCount?(t.sniperPct>0?' · ':'')+t.sniperCount+' wallets':t.sniperPct==null?'—':''}</span></div>
+      <div class="sheet-row"><span class="k">Bundlers</span><span class="v ${t.bundlePct>25?'dev-sold':t.bundlePct>10?'dev-unk':t.bundlePct!=null?'dev-holds':''}">${t.bundlePct!=null?t.bundlePct+'%'+(t.bundleWallets?' ('+t.bundleWallets+' wallets)':''):'—'}</span></div>
+      <div class="sheet-row"><span class="k">Bundle % (réseaux)</span><span class="v ${t.bundlePct>30?'dev-sold':t.bundlePct>15?'dev-unk':t.bundlePct!=null?'dev-holds':''}">${t.bundlePct!=null?t.bundlePct+'%'+(t.bundleWallets?' · '+t.bundleWallets+'w':''):t.bundleWallets?t.bundleWallets+'w (% n/d)':'—'}</span></div>
+      <div class="sheet-row"><span class="k">Phishing (estim.)</span><span class="v ${t.phishingPct>40?'dev-sold':t.phishingPct>20?'dev-unk':t.phishingPct!=null?'dev-holds':'dev-unk'}">${t.phishingPct!=null?t.phishingPct+'%':''}${t.phishingNote?(t.phishingPct!=null?' · ':'')+t.phishingNote:''}</span></div>
+      <div class="sheet-row"><span class="k">Organic (Jupiter)</span><span class="v ${(t.organicLabel==='high'||t.organicScore>=70)?'dev-holds':(t.organicLabel==='low'||(t.organicScore!=null&&t.organicScore<30))?'dev-sold':''}">${t.organicScore!=null?Math.round(t.organicScore)+'/100'+(t.organicLabel?' ('+t.organicLabel+')':''):t.jupListed===false?'Absent ⚠️':'—'}</span></div>
+      <div class="sheet-row"><span class="k">Achet. uniques 1h</span><span class="v">${t.buyers1h!=null?t.buyers1h+' achet. · '+(t.sellers1h??'?')+' vend.':'—'}</span></div>
+      <div class="sheet-row"><span class="k">Communauté 𝕏</span><span class="v">${t.xFollowers!=null?fmtH(t.xFollowers)+' abonnés':t.xCommunity?'Communauté 𝕏':t.twitterUrl?'n/d':'—'}</span></div>
+      <div class="sheet-row"><span class="k">Wash trading</span><span class="v ${t.wash==='high'?'dev-sold':t.wash==='mid'?'dev-unk':t.wash?'dev-holds':''}">${t.wash==='high'?'❌ Probable':t.wash==='mid'?'⚠️ Possible':t.wash?'✅ RAS':'—'}</span></div>
+      <div class="sheet-row"><span class="k">GoPlus</span><span class="v ${t.goplus?(t.goplus.dangers.length?'dev-sold':'dev-holds'):''}">${t.goplus?(t.goplus.dangers.length?'❌ '+t.goplus.dangers.slice(0,2).join(', '):'✅ RAS'):'—'}</span></div>
+      <div class="sheet-row"><span class="k">Trajectoire</span><span class="v ${(()=>{const j=scoreTraj(t);return j?(j.delta>0?'dev-holds':j.delta<0?'dev-sold':''):''})()}">${(()=>{const j=scoreTraj(t);return j?j.first+' → '+j.last+(j.delta>0?' ↗':j.delta<0?' ↘':' →')+' ('+j.points+' scans)':'— (2 scans requis)'})()}</span></div>
+      <div class="sheet-row"><span class="k">Ticker</span><span class="v ${t.ticker?(t.ticker.recycled?'dev-sold':t.ticker.copycat?'dev-unk':'dev-holds'):''}">${t.ticker?(t.ticker.recycled?'♻️ Recyclé ('+t.ticker.deadCount+' mort(s))':t.ticker.copycat?'⚠️ '+t.ticker.aliveCount+' actif(s) homonyme(s)':'✓ Unique'):'—'}</span></div>
+      <div class="sheet-row"><span class="k">Total holders</span><span class="v ${t.holderCount==null?'':t.holderCount>=minHolders?'hld-ok':'hld-low'}">${t.holderFloor?'≥ ':''}${fmtH(t.holderCount)}${t.holderSrc?' <span style="font-size:10px;color:'+(t.holderSrc==='Helius'?'#4ade80':'#fbbf24')+'">('+(t.holderSrc==='RugCheck'?'RugCheck ⚠':t.holderSrc)+')</span>':''}</span></div>
+      <div class="sheet-row"><span class="k">Score de risque</span><span class="v ${t.risk>=60?'dev-sold':t.risk>=30?'dev-unk':'dev-holds'}">${t.risk!=null?t.risk+'/100':'—'}${t.dump?' ⚠ DUMP':''}</span></div>
+      ${t.riskReasons&&t.riskReasons.length?`<div class="sheet-row"><span class="k">Raisons</span><span class="v" style="font-size:11px">${t.riskReasons.join(', ')}</span></div>`:''}
+    </div>
+    <div class="sheet-sec">
+      <div class="sheet-sh">💼 Ma position</div>
+      ${(()=>{const p=positions[t.address];const pn=posPnl(t);
+        return (p?`
+        <div class="sheet-row"><span class="k">Prix d'achat</span><span class="v">${fpr(p.buy)}</span></div>
+        <div class="sheet-row"><span class="k">PnL</span><span class="v ${pn!=null&&pn>=0?'dev-holds':'dev-sold'}" style="font-weight:700">${pn!=null?(pn>=0?'+':'')+pn.toFixed(1)+'%':'—'}</span></div>
+        ${p.sol?`<div class="sheet-row"><span class="k">Investi</span><span class="v">${p.sol} SOL</span></div>
+        <div class="sheet-row"><span class="k">Valeur actuelle</span><span class="v ${pn!=null&&pn>=0?'dev-holds':'dev-sold'}">${pn!=null?(p.sol*(1+pn/100)).toFixed(3)+' SOL':'—'}</span></div>`:''}`:'')+`
+        <div style="margin-top:6px;padding:0 2px">
+          <div style="font-size:10px;color:#7a8db0;margin-bottom:3px">Prix d'achat ($ / token)</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input id="dPosBuyIn" type="text" inputmode="decimal" placeholder="0.00042" value="${p?p.buy:''}" style="flex:1;min-width:0;font-family:inherit;font-size:12px;padding:6px 8px;border:1px solid #2a3f60;border-radius:6px;background:#0b1220;color:#c9d8f0">
+            ${(pxc=>pxc?`<button class="set-btn" style="padding:6px 8px;font-size:10px;white-space:nowrap" onclick="event.stopPropagation();document.getElementById('dPosBuyIn').value='${pxc}'">↙ actuel</button>`:'')(t.priceUsd&&isFinite(parseFloat(t.priceUsd))?t.priceUsd:'')}
+          </div>
+          <div style="font-size:10px;color:#7a8db0;margin:7px 0 3px">Investi (SOL) · facultatif</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input id="dPosSolIn" type="text" inputmode="decimal" placeholder="ex : 0.5" value="${p&&p.sol?p.sol:''}" style="width:90px;font-family:inherit;font-size:12px;padding:6px 8px;border:1px solid #2a3f60;border-radius:6px;background:#0b1220;color:#c9d8f0">
+            <button class="set-btn" style="padding:6px 10px" onclick="event.stopPropagation();savePosition()">💾 Enregistrer</button>
+            ${p?`<button class="set-btn" style="padding:6px 10px" onclick="event.stopPropagation();clearPosition()">🗑️</button>`:''}
+          </div>
+        </div>
+        <div style="font-size:9px;color:#4a5d80;margin-top:5px;padding:0 2px;line-height:1.5">💾 : le token passe en 📌 Suivi et les alertes de sortie s'activent. Le SOL investi est facultatif — il sert uniquement à calculer la valeur actuelle et le PnL en SOL.</div>`})()}
+    </div>
+    <div class="sheet-sec">
+      <div class="sheet-sh">Wallet développeur</div>
+      ${t.riskyDev?`<div class="sheet-row"><span class="k">⚠️ Fiché</span><span class="v dev-sold" style="font-weight:700">${esc(t.riskyDev)}</span></div>`:''}
+      ${t.tributeKol?`<div class="sheet-row"><span class="k">🎭 Tribute</span><span class="v dev-sold" style="font-weight:700">Nom de KOL : ${esc(t.tributeKol)}</span></div>`:''}
+      <div class="sheet-row"><span class="k">Statut</span><span class="v">${devStatus}</span></div>
+      <div class="sheet-row"><span class="k">Position</span><span class="v">${t.devPct!=null?t.devPct.toFixed(2)+'%':'—'}</span></div>
+      <div class="sheet-row"><span class="k">Âge du wallet</span><span class="v ${t.devWalletAge!=null&&t.devWalletAge<86400000?'dev-sold':t.devWalletAge!=null&&t.devWalletAge<604800000?'dev-unk':t.devWalletAge!=null?'dev-holds':''}">${t.devWalletAge!=null?(t.devWalletAge<86400000?'< 24h ⚠️':Math.floor(t.devWalletAge/86400000)+'j'):'—'}</span></div>
+      ${t.devAddr?`<button class="copy-addr-btn" onclick="copyAddr('${t.devAddr}',this)">📋 ${t.devAddr.slice(0,10)}…${t.devAddr.slice(-6)}</button>`:'<div class="sheet-row"><span class="v dev-unk">Adresse non trouvée</span></div>'}
+    </div>
+    <div class="sheet-sec">
+      <div class="sheet-sh">12 Critères</div>
+      <div class="sheet-crit">${critRows}</div>
+    </div>
+    <button class="copy-addr-btn" style="width:auto;margin:12px 16px" onclick="copyAddr('${t.address}',this)">📋 Copier l'adresse du token</button>
+    <div class="sheet-links">
+      <a class="sl-btn" href="${t.url}" target="_blank">DexScreener ↗</a>
+      <a class="sl-btn" href="https://rugcheck.xyz/tokens/${t.address}" target="_blank">RugCheck ↗</a>
+      <a class="sl-btn" href="https://app.meteora.ag/dlmm?search=${t.address}" target="_blank">Meteora ↗</a>
+      <a class="sl-btn" style="color:#a78bfa" href="https://gmgn.ai/sol/token/${t.address}" target="_blank">GMGN ↗</a>
+      ${t.twitterUrl?`<a class="sl-btn" style="color:#7ab8f5" href="${t.twitterUrl}" target="_blank">𝕏 Twitter ↗</a>`:''}
+      ${t.websiteUrl?`<a class="sl-btn" href="${t.websiteUrl}" target="_blank">🌐 Site web ↗</a>`:''}
+      <a class="sl-btn" style="color:#7ab8f5" href="https://x.com/search?q=${t.address}&f=live" target="_blank">🔎 Mentions 𝕏 ↗</a>
+    </div>
+    <div style="height:20px"></div>`;
+  document.getElementById('sheetBody').innerHTML=body;
+  document.getElementById('sheetBg').classList.add('open');
+  document.getElementById('sheet').classList.add('open');
+  if(t.twitterUrl&&t.xFollowers==null&&!t._xTried){
+    t._xTried=true;
+    getXCommunity(t.twitterUrl).then(xc=>{
+      if(xc&&xc.followers!=null){t.xFollowers=xc.followers;t.xHandle=xc.handle;if(sel===addr)selT(addr);}
+    }).catch(()=>{});
+  }
+  startDetRefresh();
+}
+// ── Rafraîchissement de la bottom-sheet ───────────────────────────────────────
+let detTimer=null,detBusy=false;
+function startDetRefresh(){stopDetRefresh();detTimer=setInterval(()=>refreshDet(false),15000);}
+function stopDetRefresh(){if(detTimer){clearInterval(detTimer);detTimer=null;}}
+async function refreshDet(manual){
+  if(!sel||detBusy)return;
+  const ae=document.activeElement;
+  if(!manual&&ae&&(ae.id==='dPosBuyIn'||ae.id==='dPosSolIn'))return; // ne pas écraser une saisie en cours
+  detBusy=true;
+  const btn=document.getElementById('dRefreshBtn');
+  if(btn&&manual)btn.textContent='⏳';
+  try{
+    const t=tokens.find(x=>x.address===sel)||alerts.find(x=>x.address===sel)||window._manualTok;
+    if(t){
+      const r=await fetch('https://api.dexscreener.com/latest/dex/tokens/'+sel);
+      if(r.ok){
+        const j=await r.json();
+        const pairs=(j.pairs||[]).filter(p=>p.chainId==='solana');
+        if(pairs.length){
+          const pair=pairs.sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0))[0];
+          t.priceUsd=pair.priceUsd??t.priceUsd;
+          t.mcap=pair.marketCap||pair.fdv||t.mcap;
+          t.liquidity=pair.liquidity?.usd??t.liquidity;
+          t.vol1h=pair.volume?.h1??t.vol1h;
+          t.vol24h=pair.volume?.h24??t.vol24h;
+          t.chg1h=pair.priceChange?.h1??t.chg1h;
+          t.chg24h=pair.priceChange?.h24??t.chg24h;
+          t.buys1h=pair.txns?.h1?.buys??t.buys1h;
+          t.sells1h=pair.txns?.h1?.sells??t.sells1h;
+          if(pair.pairCreatedAt)t.age=Date.now()-pair.pairCreatedAt;
+        }
+      }
+      if(sel===t.address){
+        const sh=document.getElementById('sheet');
+        const sc=sh?sh.scrollTop:0;
+        const cur=sel;sel=null;selT(cur); // sel=null pour éviter le toggle éventuel, puis re-rendu
+        if(sh)sh.scrollTop=sc;
+      }
+      const inf=document.getElementById('dRefreshInfo');
+      if(inf)inf.textContent='maj '+new Date().toLocaleTimeString();
+    }
+  }catch(e){}
+  if(btn)btn.textContent='🔄';
+  detBusy=false;
+}
+function mTvChart(url,btn){
+  const wrap=btn.parentElement.querySelector('.mtv-wrap');
+  if(!wrap||!url)return;
+  if(wrap.innerHTML){wrap.innerHTML='';btn.textContent='📈 Afficher le chart';return;}
+  const src=url+(url.includes('?')?'&':'?')+'embed=1&theme=dark&trades=0&info=0';
+  wrap.innerHTML='<iframe src="'+src+'" style="width:100%;height:320px;border:0;border-radius:10px;margin-top:8px;background:#0b1220" loading="lazy" allowfullscreen></iframe>';
+  btn.textContent='📉 Masquer le chart';
+}
+function closeD(){
+  sel=null;
+  stopDetRefresh();
+  document.getElementById('sheetBg').classList.remove('open');
+  document.getElementById('sheet').classList.remove('open');
+}
+
+// Critères (panneau réglages)
+function initCritPanel(){
+  const g=document.getElementById('critGrid');
+  g.innerHTML=CR.map(c=>`
+    <div class="crit-toggle ${activeCrit.has(c.id)?'active':''}" id="ct-${c.id}" onclick="toggleCrit('${c.id}')"
+      style="--col:${c.col};--bg:${c.bg};--bc:${c.bc}">
+      <div class="crit-cb">${activeCrit.has(c.id)?'✓':''}</div>
+      <span>${c.lbl}</span>
+    </div>`).join('');
+  document.getElementById('activeCritCount').textContent=activeCrit.size;
+}
+function updateScoreSelect(){
+  document.getElementById('activeCritCount').textContent=activeCrit.size;
+}
+
+// Manuel — affiche aussi le bouton détail
+function showManualResult(tok){
+  window._manualTok=tok;
+}
+
+// togglePin (retiré du moteur, réimplémenté pour mobile)
+function togglePin(addr,btn){
+  if(watchlist.has(addr)){watchlist.delete(addr);}
+  else{watchlist.add(addr);}
+  localStorage.setItem('meme_watchlist',JSON.stringify([...watchlist]));
+  upd();
+  if(curTab==='watch')renderWatch();else render();
+  // feedback toast
+  showToast(watchlist.has(addr)?'📌 Ajouté au suivi':'Retiré du suivi');
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+detectEnv();
+// Restaurer les réglages sauvegardés + persistance automatique
+loadSettings();
+['setMinScore','setMinHolders','applyFilter','setMaxAge','toggleDlmmOnly','toggleDlmmFirst','toggleCrit','toggleAllCrit','sortBy','setMobileSort','setScanInterval'].forEach(fn=>{
+  const o=window[fn];
+  if(typeof o==='function')window[fn]=function(...a){const r=o.apply(this,a);saveSettings();return r;};
+});
+
+initCritPanel();
+initHeliusUI();
+loadAlerts();
+updateForceCount();
+updateRiskyCount();
+updateNotifBtn();
+// Intervalle de scan sauvegardé
+(function(){const s=parseInt(localStorage.getItem('meme_scan_int'));if(s>=30){SCAN_INT=s;const el=document.getElementById('scanInt');if(el)el.value=String(s);}})();
+
+</script>
+
+<script>
+// ══ i18n FR/EN — Meme Radar DLMM Edition ══════════════════════════════════════
+// Le français est la langue source du code ; l'anglais est appliqué par
+// substitution des nœuds texte + attributs (placeholder/title), y compris sur
+// le contenu généré dynamiquement (MutationObserver débounce).
+var LANG='fr';try{LANG=localStorage.getItem('meme_lang')||'fr';}catch(e){}
+var I18N_X={
+// — sections & labels —
+"Marché":"Market","Prix":"Price","Âge":"Age","Liquidité":"Liquidity","Vol. lancement":"Launch vol.",
+"Évolution prix (session)":"Price history (session)","Chart TradingView":"TradingView chart",
+"📈 Afficher le chart":"📈 Show chart","📉 Masquer le chart":"📉 Hide chart",
+"Signaux":"Signals","Score de risque":"Risk score","Vélocité holders":"Holder velocity",
+"Vélocité volume":"Volume velocity","Bundle % (réseaux)":"Bundle % (networks)",
+"Acheteurs uniq. 1h":"Unique buyers 1h","Communauté 𝕏":"𝕏 community","Phishing (estim.)":"Phishing (est.)",
+"GoPlus sécurité":"GoPlus security","Trajectoire score":"Score trajectory","Trajectoire":"Trajectory",
+"DEX détectés":"DEXes detected","12 Critères":"12 Checks","score sur 12":"score out of 12",
+"Score sur critères actifs":"Score on active checks","💼 Ma position":"💼 My position",
+"Prix d'achat":"Buy price","Investi":"Invested","Valeur actuelle":"Current value",
+"Wallet développeur":"Developer wallet","👨‍💻 WALLET DÉVELOPPEUR":"👨‍💻 DEVELOPER WALLET",
+"Statut":"Status","Âge du wallet":"Wallet age","Adresse dev :":"Dev address:","Réseaux":"Socials",
+"Raisons":"Reasons","Risque":"Risk","🔗 RÉSEAUX":"🔗 SOCIALS","📊 MARCHÉ":"📊 MARKET",
+"Âge depuis création":"Age since creation","% cumulé":"cumulative %","% cumulé top 10 holders":"cumulative % top 10 holders","% du supply":"% of supply",
+// — position (nouveaux libellés) —
+"Prix d'achat ($ / token)":"Buy price ($ / token)","Investi (SOL) · facultatif":"Invested (SOL) · optional",
+"↙ prix actuel":"↙ current price","↙ actuel":"↙ current","💾 Enregistrer":"💾 Save",
+"💾 : le token passe en 📌 Suivi et les alertes de sortie s'activent. Le montant en SOL est facultatif — il sert uniquement à calculer la valeur actuelle et le PnL en SOL.":"💾 : the token is added to 📌 Tracked and exit alerts turn on. The SOL amount is optional — it is only used to compute current value and PnL in SOL.",
+"💾 : le token passe en 📌 Suivi et les alertes de sortie s'activent. Le SOL investi est facultatif — il sert uniquement à calculer la valeur actuelle et le PnL en SOL.":"💾 : the token is added to 📌 Tracked and exit alerts turn on. Invested SOL is optional — it is only used to compute current value and PnL in SOL.",
+"Enregistrer la position":"Save position","Supprimer la position":"Delete position",
+"Remplir avec le prix actuel du token":"Fill with the token's current price",
+// — boutons / toolbar —
+"▶ Scanner":"▶ Scan","✏️ Modifier les listes":"✏️ Edit lists","💾 Enregistrer & scanner":"💾 Save & scan",
+"⬇ Exporter":"⬇ Export","⬆ Importer":"⬆ Import","📊 Exporter tokens":"📊 Export tokens",
+"🚨 Exporter alertes":"🚨 Export alerts","✕ Effacer":"✕ Clear","Annuler":"Cancel","Supprimer":"Delete",
+"Épingler":"Pin","Retirer":"Unpin","▸ Afficher":"▸ Show","▾ Masquer":"▾ Hide","✓ Tout":"✓ All",
+"✗ Aucun":"✗ None","✗ Min":"✗ Min","Tout":"All","toujours":"always","CRITÈRES":"CHECKS","actifs :":"active:",
+"⚙ Configuration":"⚙ Configuration","✓ Critères actifs (":"✓ Active checks (",
+"①-⑫ critères actifs":"①-⑫ active checks",
+// — onglets —
+"🔔 Alertes":"🔔 Alerts","Alertes":"Alerts","📌 Suivi":"📌 Tracked","🔍 Manuel":"🔍 Manual","Manuel":"Manual",
+"⚙️ Réglages":"⚙️ Settings","📌 Suivi manuel":"📌 Manual tracking","📌 Watchlist":"📌 Watchlist",
+"📌 Suivi manuel — adresses toujours scannées":"📌 Manual tracking — addresses always scanned",
+// — statuts —
+"Prêt":"Ready","chargement…":"loading…","erreur":"error","Détection…":"Detecting…",
+"Détection de l'environnement…":"Detecting environment…",
+"Scan en cours — collecte des sources…":"Scanning — collecting sources…","Prochain scan :":"Next scan:",
+"Lance le scanner pour démarrer":"Start the scanner to begin",
+"En attente d'une adresse…":"Waiting for an address…","Le résultat apparaîtra ici…":"Results will appear here…",
+"⟳ Récupération DexScreener + RugCheck + Solscan…":"⟳ Fetching DexScreener + RugCheck + Solscan…",
+"Mode local":"Local mode","● LOCAL":"● LOCAL",
+"Mode local — DexScreener · RugCheck · Helius opérationnels":"Local mode — DexScreener · RugCheck · Helius operational",
+"Mode restreint (viewer Claude)":"Restricted mode (Claude viewer)",
+"Mode restreint — télécharge le fichier pour le scanner en temps réel":"Restricted mode — download the file for real-time scanning",
+"— Toutes les APIs sont accessibles. Scanner opérationnel.":"— All APIs reachable. Scanner operational.",
+"— APIs blockchain bloquées.":"— Blockchain APIs blocked.",
+"⚠ APIs bloquées dans le viewer Claude":"⚠ APIs blocked in the Claude viewer",
+"Télécharge ce fichier → ouvre dans Chrome/Firefox":"Download this file → open in Chrome/Firefox",
+"ouvre directement dans le navigateur, pas besoin d'":"opens directly in the browser, no need for ",
+// — clé Helius —
+"⚡ Clé API Helius":"⚡ Helius API key","Clé Helius requise":"Helius key required",
+"Clé UUID ou URL RPC":"UUID key or RPC URL","URL RPC complète":"full RPC URL","Clé chargée":"Key loaded",
+"Obtenir une clé gratuite ↗":"Get a free key ↗","Clé gratuite ↗":"Free key ↗","(100k req/mois)":"(100k req/month)",
+"Clé API :":"API key:","Clé UUID Helius (ex: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) ou URL RPC complète":"Helius UUID key (e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) or full RPC URL",
+"Clé déjà enregistrée — colle une nouvelle clé pour la remplacer":"Key already saved — paste a new one to replace it",
+"✓ Clé enregistrée — test en cours…":"✓ Key saved — testing…","✅ Connexion Helius vérifiée":"✅ Helius connection verified",
+"⚠ Test échoué :":"⚠ Test failed:","❌ Clé refusée par Helius (401) — vérifie-la sur dashboard.helius.dev":"❌ Key rejected by Helius (401) — check it on dashboard.helius.dev",
+"— (clé Helius requise)":"— (Helius key required)","Helius sans réponse pour ce token":"No Helius response for this token",
+"⚠️ Clé corrompue détectée et supprimée — recolle ta clé Helius":"⚠️ Corrupted key detected and removed — paste your Helius key again",
+"⚠ Clé stockée invalide détectée et purgée — recolle ta clé Helius":"⚠ Invalid stored key detected and purged — paste your Helius key again",
+"❌ Clé illisible":"❌ Unreadable key","⚡ Clé invalide":"⚡ Invalid key","⚡ Helius":"⚡ Helius",
+"— (enrichi si score ≥ seuil)":"— (enriched if score ≥ threshold)",
+// — filtres / réglages —
+"Âge max :":"Max age:","Âge min :":"Min age:","Âge:":"Age:","MCap/Liq max :":"Max MCap/Liq:",
+"Seuil ≥":"Threshold ≥","Alerte ≥":"Alert ≥","Scan toutes les":"Scan every","min: tout":"min: any",
+"M/L: tout":"M/L: any","max: 24h":"max: 24h","Tri: Score":"Sort: Score","Risque (croissant)":"Risk (ascending)",
+"Âge maximum des tokens inclus dans le scan":"Maximum age of tokens included in the scan",
+"Temporisation entre la fin d'un scan et le début du suivant":"Delay between the end of a scan and the start of the next",
+"Seuil du critère ⑨ : nombre minimum de holders":"Check ⑨ threshold: minimum holder count",
+"Score de risque (0=sûr, 100=danger)":"Risk score (0=safe, 100=danger)",
+"Ratio MCap / Liquidité — idéal < 10×":"MCap / Liquidity ratio — ideally < 10×",
+"🟡 DLMM en tête":"🟡 DLMM first","🟡 DLMM en tête ✓":"🟡 DLMM first ✓","🟡 DLMM uniquement":"🟡 DLMM only",
+"🟡 DLMM uniquement ✓":"🟡 DLMM only ✓",
+"Faire remonter les tokens avec pool DLMM Meteora en tête de liste":"Push tokens with a Meteora DLMM pool to the top",
+"N'afficher QUE les tokens avec une pool DLMM Meteora":"Show ONLY tokens with a Meteora DLMM pool",
+"🔍 Filtrer par symbole, nom ou adresse…":"🔍 Filter by symbol, name or address…",
+// — suivi / watchlist —
+"Adresses toujours scannées, même hors sources auto. Une par ligne.":"Addresses always scanned, even outside auto sources. One per line.",
+"Adresses toujours scannées, quelles que soient les sources":"Addresses always scanned, whatever the sources",
+"Aucun token suivi":"No tracked tokens","Retiré du suivi":"Removed from tracking","📌 Ajouté au suivi":"📌 Added to tracking",
+"Watchlist vide — épingle des tokens depuis le tableau Live":"Watchlist empty — pin tokens from the Live table",
+"Épingle des tokens depuis l'onglet Live":"Pin tokens from the Live tab",
+"Les tokens épinglés sont rescannés à chaque cycle, même après 24h":"Pinned tokens are rescanned every cycle, even after 24h",
+"Token hors du scan actuel":"Token outside the current scan","perf: — (hors scan)":"perf: — (not in scan)",
+"Colle ici les adresses de tokens que tu veux":"Paste here the token addresses you want to",
+// — alertes —
+"Aucune alerte — seuil ≥":"No alerts — threshold ≥","Aucune alerte — seuil :":"No alerts — threshold:",
+"Performance depuis l'alerte":"Performance since alert","SORTIE":"EXIT","⚠ Dump":"⚠ Dump","DUMP":"DUMP",
+"🔔 Activer les notifications":"🔔 Enable notifications","🔔 Activer notifs":"🔔 Enable notifs",
+"🔔 Notifications activées":"🔔 Notifications enabled","🔔 Notifications activées ✓":"🔔 Notifications enabled ✓",
+"Notifications activées ✓":"Notifications enabled ✓","Notifications non supportées":"Notifications not supported",
+"Notifications non supportées par ce navigateur":"Notifications not supported by this browser",
+"Reçois une notification même quand l'app est en arrière-plan. Ajoute le site à ton écran d'accueil pour de meilleurs résultats.":"Get notified even when the app is in the background. Add the site to your home screen for best results.",
+// — dev wallet —
+"✅ Tient":"✅ Holding","❌ A vendu":"❌ Sold","⚠️ Inconnu":"⚠️ Unknown","0 → tout vendu":"0 → sold everything",
+"< 24h ❌ (très récent)":"< 24h ❌ (very fresh)","Dev non fiché":"Dev not flagged","Dev fiché :":"Flagged dev:",
+"⚠️ DEV FICHÉ :":"⚠️ FLAGGED DEV:","⚠️ Fiché":"⚠️ Flagged","Adresse non trouvée":"Address not found",
+"Pas de compte 𝕏 connu":"No known 𝕏 account","Pas de compte connu":"No known account",
+"🚨 Combo tribute + dev fiché":"🚨 Tribute + flagged dev combo","Position":"Position","Balance":"Balance",
+// — critères (labels CR) —
+"Pas de mint authority":"No mint authority","Pas de freeze authority":"No freeze authority",
+"Dev propre / no bundle":"Clean dev / no bundle","LP locked / burnée":"LP locked / burned",
+"Holders en croissance":"Growing holders","Market cap en hausse":"Rising market cap",
+"Pool DLMM Meteora active":"Active Meteora DLMM pool","Dev n'a pas vendu":"Dev hasn't sold",
+"Pas un tribute token":"Not a tribute token",
+// — ticker / risques —
+"✓ Unique":"✓ Unique","Ticker recyclé":"Recycled ticker","♻️ Recyclé":"♻️ Recycled",
+"Symbole déjà pris par un token actif":"Symbol already taken by an active token",
+"Mint actif":"Mint active","Freeze actif":"Freeze active","RugCheck risqué":"RugCheck risky",
+"Bundle détecté":"Bundle detected","Volume/acheteur élevé":"High volume per buyer",
+"Activité peu organique":"Low organic activity","Signalé suspect par Jupiter":"Flagged suspicious by Jupiter",
+"Aucun risque majeur":"No major risk","⛔ Signalé suspect":"⛔ Flagged suspicious",
+"⛔ Signalé suspect (Jupiter)":"⛔ Flagged suspicious (Jupiter)","⛔ Suspect":"⛔ Suspicious",
+"✅ Aucun danger détecté":"✅ No danger detected","✅ Rien détecté":"✅ Nothing detected",
+"⚪ Non calculé":"⚪ Not computed","⚪ Données partielles":"⚪ Partial data",
+"⚪ Aucun réseau détecté":"⚪ No socials detected","Aucun réseau détecté":"No socials detected",
+"Aucun boost":"No boost","Aucun détecté":"None detected","✗ Aucune":"✗ None","✗ Aucun DLMM":"✗ No DLMM",
+"❌ Aucun pool DLMM":"❌ No DLMM pool","✅ DLMM pool trouvée (via DexScreener)":"✅ DLMM pool found (via DexScreener)",
+"✓ DLMM trouvée":"✓ DLMM found","✓ Trouvée":"✓ Found","Non détecté":"Not detected","Non trouvé":"Not found",
+"✅ Listé":"✅ Listed","Aucun lien trouvé":"No links found","Aucune donnée à exporter":"No data to export",
+"Estimé (chg 24h/6h/1h)":"Estimated (chg 24h/6h/1h)","Boost DexScreener actif ($)":"Active DexScreener boost ($)",
+"Valeur RugCheck — peut être périmée. Configure Helius pour un comptage temps réel.":"RugCheck value — may be stale. Set up Helius for real-time counts.",
+"Communauté X (comptage indisponible)":"X community (count unavailable)",
+"Communauté 𝕏 (compteur non public)":"𝕏 community (counter not public)",
+"Graphique disponible après 3 scans du token":"Chart available after 3 scans of this token",
+"Volume depuis lancement (max 24h)":"Volume since launch (max 24h)","Volume en accélération":"Accelerating volume",
+"Vélocité holders (nouveaux/min)":"Holder velocity (new/min)","Achet. uniques 1h":"Unique buyers 1h",
+"Rechercher les mentions de ce token sur X en temps réel":"Search live mentions of this token on X",
+// — manuel —
+"ℹ️ Colle une adresse mint Solana. Les adresses pump.fun se terminent souvent par":"ℹ️ Paste a Solana mint address. pump.fun addresses often end with",
+"— c'est normal.":"— that's normal.","🔎 Analyser":"🔎 Analyze","🔍 Analyser ce token":"🔍 Analyze this token",
+"📋 Voir la fiche détaillée":"📋 View full details",
+// — copie / export / listes —
+"📋 Adresse copiée !":"📋 Address copied!","📋 Copié !":"📋 Copied!","✓ Copié!":"✓ Copied!","📋 Copier":"📋 Copy",
+"📋 Copier l'adresse":"📋 Copy address","📋 Copier l'adresse du token":"📋 Copy token address",
+"Cliquer pour copier":"Click to copy","Cliquer pour copier l'adresse complète":"Click to copy the full address",
+"✓ Configuration importée avec succès":"✓ Configuration imported successfully","❌ Fichier invalide :":"❌ Invalid file:",
+"❌ Erreur :":"❌ Error:","Importer un fichier de configuration":"Import a configuration file",
+"Télécharger réglages + watchlist + suivi manuel + clé Helius":"Download settings + watchlist + manual tracking + Helius key",
+"Réglages, watchlist, suivi manuel et clé Helius — pour transférer entre desktop et mobile.":"Settings, watchlist, manual tracking and Helius key — to transfer between desktop and mobile.",
+"⚠️ Devs fichés & KOLs":"⚠️ Flagged devs & KOLs","⚠️ Devs fichés":"⚠️ Flagged devs",
+"⚠️ Devs fichés & tribute tokens":"⚠️ Flagged devs & tribute tokens","Dev wallets fichés":"Flagged dev wallets",
+"Noms de KOLs":"KOL names","(détection tribute) — un par ligne.":"(tribute detection) — one per line.",
+"(l'étiquette est optionnelle). Fusionnés avec la liste intégrée.":"(label optional). Merged with the built-in list.",
+"(étiquette optionnelle).":"(optional label).","— un par ligne, format":"— one per line, format",
+"adresse = étiquette":"address = label",
+"Liste éditable des dev wallets fichés et des noms de KOLs pour la détection tribute":"Editable list of flagged dev wallets and KOL names for tribute detection",
+// — divers —
+"Prix d'achat invalide":"Invalid buy price","abonnés":"followers","vendeurs":"sellers","vendeurs (1h)":"sellers (1h)",
+"📡 À propos":"📡 About",
+"Comptage plafonné pour économiser le quota Helius — valeur réelle ≥ affichée":"Count capped to save Helius quota — real value ≥ shown",
+"Rafraîchir les données maintenant (auto toutes les 15 s)":"Refresh data now (auto every 15 s)",
+"Rafraîchir maintenant (auto toutes les 15 s)":"Refresh now (auto every 15 s)",
+"ne pas écraser une saisie en cours":"do not overwrite typing","Dons SOL :":"SOL donations:",
+"Pas un conseil financier — l'outil trie, vous décidez.":"Not financial advice — the tool sorts, you decide."
+};
+var I18N_RX=[
+[/^(\d+)\s+alertes?$/,"$1 alerts"],
+[/^maj (.+)$/,"upd $1"],
+[/Bundle > (\d+)% du supply/g,"Bundle > $1% of supply"],
+[/Holders gonflés > (\d+)%/g,"Inflated holders > $1%"],
+[/♻️ Recyclé \((\d+) mort\(s\)\)/,"♻️ Recycled ($1 dead)"],
+[/♻️ RECYCLÉ/,"♻️ RECYCLED"],
+[/⚠️ (\d+) actif\(s\) homonyme\(s\)/,"⚠️ $1 active namesake(s)"],
+[/(\d+) ancien\(s\) token\(s\) mort\(s\) du même nom/,"$1 old dead token(s) with the same name"],
+[/(\d+) token\(s\) actif\(s\) du même nom/,"$1 active token(s) with the same name"],
+[/(\d+) actif\(s\) du même nom/,"$1 active with the same name"],
+[/^Score en hausse : (.+) sur la session$/,"Score rising: $1 over the session"],
+[/^Score en baisse : (.+) sur la session$/,"Score falling: $1 over the session"],
+[/^Solana · (.+) · 12 critères$/,"Solana · $1 · 12 checks"],
+[/^≥ (\d+) holders au total$/,"≥ $1 total holders"],
+[/([\d.,]+[kKmM]?) abonnés/,"$1 followers"],
+[/· vérifié/,"· verified"],
+[/([\d.,]+[kKmM]?) acheteurs/,"$1 buyers"],
+[/([\d.,]+[kKmM]?) vendeurs/,"$1 sellers"],
+[/Cohérent \(/,"Consistent ("],
+[/^Nom de KOL : (.+)$/,"KOL name: $1"],
+[/^(\d+)j \(récent\)$/,"$1d (recent)"],
+[/^(\d+)j$/,"$1d"],
+[/Remplir avec le prix actuel : (.+)/,"Fill with the current price: $1"],
+[/⚠ Helius répond HTTP/,"⚠ Helius returned HTTP"],
+[/wallets liés/,"linked wallets"],
+[/❌ Token introuvable\. Vérifie l'adresse/,"❌ Token not found. Check the address"],
+[/^✅ (\d+)\/12/,"✅ $1/12"]
+];
+function i18nTr(s){
+  if(Object.prototype.hasOwnProperty.call(I18N_X,s))return I18N_X[s];
+  for(var i=0;i<I18N_RX.length;i++){var re=I18N_RX[i][0];re.lastIndex=0;
+    if(re.test(s)){re.lastIndex=0;return s.replace(re,I18N_RX[i][1]);}}
+  return null;
+}
+function applyI18n(root){
+  if(LANG!=='en')return;
+  root=root||document.body;if(!root)return;
+  var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),n,todo=[];
+  while(n=w.nextNode()){
+    var raw=n.nodeValue,t=raw.trim();if(!t)continue;
+    var tr=i18nTr(t);
+    if(tr!=null&&tr!==t)todo.push([n,raw.replace(t,tr)]);
+  }
+  for(var i=0;i<todo.length;i++)todo[i][0].nodeValue=todo[i][1];
+  if(root.querySelectorAll){
+    var els=root.querySelectorAll('[placeholder],[title]');
+    for(var j=0;j<els.length;j++){var el=els[j],attrs=['placeholder','title'];
+      for(var k=0;k<2;k++){var v=el.getAttribute(attrs[k]);
+        if(v){var tv=i18nTr(v.trim());if(tv!=null&&tv!==v.trim())el.setAttribute(attrs[k],tv);}}}
+  }
+}
+var _i18nTm=null,_i18nObs=null;
+function i18nInit(){
+  _mkLangBtn();
+  if(LANG!=='en')return;
+  try{if(typeof CR!=='undefined'&&Array.isArray(CR))CR.forEach(function(c){var tr=i18nTr(c.lbl);if(tr!=null)c.lbl=tr;});}catch(e){}
+  applyI18n(document.body);
+  try{
+    _i18nObs=new MutationObserver(function(){
+      clearTimeout(_i18nTm);
+      _i18nTm=setTimeout(function(){
+        if(_i18nObs)_i18nObs.disconnect();
+        applyI18n(document.body);
+        if(_i18nObs&&document.body)_i18nObs.observe(document.body,{childList:true,subtree:true,characterData:true});
+      },150);
+    });
+    _i18nObs.observe(document.body,{childList:true,subtree:true,characterData:true});
+  }catch(e){}
+}
+function toggleLang(){
+  var nl=(LANG==='fr')?'en':'fr';
+  try{localStorage.setItem('meme_lang',nl);}catch(e){}
+  location.reload();
+}
+function _mkLangBtn(){
+  try{
+    if(document.getElementById('langBtn'))return;
+    var exp=document.querySelector('[onclick="exportConfig()"]');if(!exp)return;
+    var b=document.createElement('button');
+    b.id='langBtn';b.className=exp.className||'tbtn';b.type='button';
+    b.style.fontWeight='700';
+    b.textContent=(LANG==='fr')?'🌐 EN':'🌐 FR';
+    b.title=(LANG==='fr')?'Switch interface to English (reloads the page)':'Repasser l\u2019interface en fran\u00e7ais (recharge la page)';
+    b.onclick=toggleLang;
+    exp.parentNode.insertBefore(b,exp);
+  }catch(e){}
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',i18nInit);
+else i18nInit();
+</script>
+
+</body>
+</html>
