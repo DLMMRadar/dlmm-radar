@@ -4,7 +4,13 @@
 
 > ⚠️ **This is not a miracle tool.** It is one tool among others. It will not find you the next 100x, it will not remove the risk, and a clean score can still rug. It filters the obvious garbage so you can spend your attention on the few candidates that deserve real due diligence. The decision — and the risk — stay 100% yours. Read the [full disclaimer](DISCLAIMER.md).
 
-<!-- screenshot desktop ici -->
+## ▶ Try it online
+
+No install, no signup: **[Desktop version](https://dlmmradar.github.io/dlmm-radar/meme_radar.html)** · **[Mobile version](https://dlmmradar.github.io/dlmm-radar/meme_radar_mobile.html)**
+
+Runs entirely in your browser — you'll just need a free [Helius](https://helius.dev) API key (stored locally, never sent anywhere else).
+
+![Meme Radar — desktop](screenshots/desktop.png)
 
 ---
 
@@ -36,6 +42,7 @@ On top of the score, a **risk index** aggregates penalties, plus:
 - 🌀 **Wash-trading heuristic** — unique buyers/sellers per hour vs. volume
 - ⛔ **Security cross-check** — transfer fees, hooks, mutable balances (GoPlus vs. RugCheck divergences)
 - ♻️ **Recycled ticker detection**
+- 🟡 **Meteora DLMM pool metrics** — bin step, base fee, TVL, and the 24h **fee/TVL ratio** straight from Meteora's official API, so you know whether the pool actually pays LPs before you open it
 - 𝕏 **Social signals** — account link, mentions, community size (informational only)
 - Organic score & suspicious-audit flag from Jupiter
 
@@ -51,6 +58,10 @@ All free public endpoints. The only key you need is a **free Helius API key** (u
 2. **Open it** in Chrome (or any modern browser)
 3. **Paste your free Helius API key** in the settings — get one at [helius.dev](https://helius.dev) in two minutes
 4. Let it scan. Adjust filters (token age, liquidity floor, DLMM only, minimum holders) to taste.
+
+Interface is available in **English and French** (🌐 toggle next to the config buttons).
+
+<img src="screenshots/mobile.png" alt="Meme Radar — mobile" width="320">
 
 Your settings, flagged-dev list and KOL list persist locally in your browser (localStorage). Export/import them as JSON from the settings panel.
 
@@ -83,7 +94,9 @@ Ce n'est **pas un outil miracle** : c'est un outil parmi d'autres. Il ne trouver
 
 **Un simple fichier HTML.** Pas de serveur, pas d'inscription, jamais de connexion wallet. Tout tourne dans votre navigateur ; vos clés API restent en local.
 
-**Démarrage :** téléchargez `meme_radar.html` (ordinateur) ou `meme_radar_mobile.html` (mobile), ouvrez-le dans Chrome, collez votre clé Helius gratuite ([helius.dev](https://helius.dev)) dans les réglages. L'interface est disponible en français et en anglais (bouton FR/EN).
+**Essai en ligne, sans installation :** [version ordinateur](https://dlmmradar.github.io/dlmm-radar/meme_radar.html) · [version mobile](https://dlmmradar.github.io/dlmm-radar/meme_radar_mobile.html)
+
+**Ou en local :** téléchargez `meme_radar.html` (ordinateur) ou `meme_radar_mobile.html` (mobile) et ouvrez-le dans Chrome. Dans les deux cas, collez votre clé Helius gratuite ([helius.dev](https://helius.dev)) dans les réglages. L'interface est disponible en français et en anglais (bouton 🌐 FR/EN).
 
 Les 12 critères couvrent : autorités mint/freeze révoquées, LP verrouillée, détection de bundles, nombre et croissance des holders réels, concentration du top 10, part des snipers/insiders, présence d'un pool DLMM, âge et comportement du wallet du dev, deployers en série fichés, détection des tokens « tribute ». S'y ajoutent un indice de risque, une heuristique de wash trading, un croisement de sécurité GoPlus/RugCheck, la détection de tickers recyclés et des signaux sociaux 𝕏.
 
