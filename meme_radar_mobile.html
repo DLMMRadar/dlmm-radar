@@ -720,8 +720,12 @@ function setEnv(e){
 
 // ── Fetch helpers ─────────────────────────────────────────────────────────────
 async function get(url,ms=7000){
-  try{const r=await fetch(url,{signal:AbortSignal.timeout(ms)});if(r.ok)return r.json();}catch{}
-  try{const r=await fetch('https://corsproxy.io/?'+encodeURIComponent(url),{signal:AbortSignal.timeout(ms+4000)});if(r.ok)return r.json();}catch{}
+  // cache:'no-store' : jamais de réponse HTTP mise en cache par le navigateur
+  try{const r=await fetch(url,{signal:AbortSignal.timeout(ms),cache:'no-store'});if(r.ok)return r.json();}catch{}
+  // Fallback proxy CORS : corsproxy.io sert des copies en cache → cache-busting
+  // via un paramètre horodaté dans l'URL cible (ignoré par les APIs)
+  try{const bust=url+(url.includes('?')?'&':'?')+'_ts='+Date.now();
+    const r=await fetch('https://corsproxy.io/?'+encodeURIComponent(bust),{signal:AbortSignal.timeout(ms+4000),cache:'no-store'});if(r.ok)return r.json();}catch{}
   return null;
 }
 // DexScreener token profiles — source principale (CORS OK)
@@ -2389,6 +2393,7 @@ function selT(addr){
       ${t.riskReasons&&t.riskReasons.length?`<div class="sheet-row"><span class="k">Raisons</span><span class="v" style="font-size:11px">${t.riskReasons.join(', ')}</span></div>`:''}
     </div>
     <div class="sheet-sec">
+      <div id="dMeteo" style="display:none;margin:2px 2px 10px;padding:8px 10px;border:1px solid #92400e40;border-radius:8px;background:#92400e0d"></div>
       <div class="sheet-sh">💼 Ma position</div>
       ${(()=>{const p=positions[t.address];const pn=posPnl(t);
         return (p?`
@@ -2444,8 +2449,63 @@ function selT(addr){
       if(xc&&xc.followers!=null){t.xFollowers=xc.followers;t.xHandle=xc.handle;if(sel===addr)selT(addr);}
     }).catch(()=>{});
   }
+  loadMeteoraBlock(t);
+  if(mTvOpen===addr){
+    const b=document.querySelector('#sheetBody [onclick^="mTvChart"]');
+    if(b)mTvChart(t.url,b); // ré-ouvre le chart (wrap vide après re-rendu → ouverture)
+  }else if(mTvOpen&&mTvOpen!==addr){mTvOpen=null;}
   startDetRefresh();
 }
+
+// ── Enrichissement pool DLMM via l'API Meteora (détail uniquement, cache 5 min) ──
+const meteoCache={};
+async function getMeteoraDLMM(mint){
+  const c=meteoCache[mint];
+  if(c&&Date.now()-c.ts<300000)return c.v;
+  try{
+    const r=await fetch('https://dlmm.datapi.meteora.ag/pools?query='+encodeURIComponent(mint)+'&page_size=20&sort_by=tvl:desc',{signal:AbortSignal.timeout(8000)});
+    if(!r.ok)throw 0;
+    const j=await r.json();
+    const pools=(j.data||[]).filter(p=>!p.is_blacklisted&&(p.token_x?.address===mint||p.token_y?.address===mint));
+    let v=null;
+    if(pools.length){
+      const b=pools[0]; // trié par TVL décroissante
+      v={count:pools.length,address:b.address,name:b.name,tvl:b.tvl,
+         binStep:b.pool_config?.bin_step,baseFee:b.pool_config?.base_fee_pct,
+         dynFee:b.dynamic_fee_pct,fees24h:b.fees?.['24h'],
+         feeTvl24h:b.fee_tvl_ratio?.['24h'],feeTvl1h:b.fee_tvl_ratio?.['1h'],
+         vol24h:b.volume?.['24h'],launchpad:b.launchpad||null};
+    }
+    meteoCache[mint]={ts:Date.now(),v};
+    return v;
+  }catch(e){meteoCache[mint]={ts:Date.now(),v:null};return null;}
+}
+function ftvlColor(x){return x==null?'#6a80a0':x>=5?'#4ade80':x>=1?'#fde68a':'#6a80a0';}
+async function loadMeteoraBlock(t){
+  const box=document.getElementById('dMeteo');
+  if(!box)return;
+  const mint=t.address;
+  box.innerHTML='<div style="font-size:10px;color:#4a5d80">Chargement du pool Meteora…</div>';
+  const v=await getMeteoraDLMM(mint);
+  if(sel!==mint)return; // le panneau a changé de token entre-temps
+  if(!v){box.innerHTML='';box.style.display='none';return;}
+  box.style.display='';
+  const fm=n=>n==null?'—':n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1e3?'$'+(n/1e3).toFixed(1)+'k':'$'+(+n).toFixed(0);
+  const pc=n=>n==null?'—':(+n).toFixed(2).replace(/\.?0+$/,'')+'%';
+  box.innerHTML=
+    '<div style="font-size:10px;font-weight:700;color:#fde68a;letter-spacing:.4px;margin-bottom:4px">🟡 POOL DLMM METEORA'+(v.count>1?' <span style="color:#6a80a0;font-weight:400">('+v.count+' pools — meilleure TVL)</span>':'')+'</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:4px 14px;font-size:10px;color:#c9d8f0">'+
+    '<span>Bin step <b>'+(v.binStep??'—')+'</b></span>'+
+    '<span>Base fee <b>'+pc(v.baseFee)+'</b>'+(v.dynFee!=null?' <span style="color:#6a80a0">(dyn. '+pc(v.dynFee)+')</span>':'')+'</span>'+
+    '<span>TVL <b>'+fm(v.tvl)+'</b></span>'+
+    '<span>Vol 24h <b>'+fm(v.vol24h)+'</b></span>'+
+    '<span>Fees 24h <b>'+fm(v.fees24h)+'</b></span>'+
+    '<span>Fee/TVL 24h <b style="color:'+ftvlColor(v.feeTvl24h)+'">'+pc(v.feeTvl24h)+'</b>'+(v.feeTvl1h!=null?' <span style="color:#6a80a0">(1h : '+pc(v.feeTvl1h)+')</span>':'')+'</span>'+
+    (v.launchpad?'<span>Launchpad <b>'+String(v.launchpad).replace(/[<>&"]/g,'')+'</b></span>':'')+
+    '</div>'+
+    '<a href="https://app.meteora.ag/dlmm/'+v.address+'" target="_blank" style="display:inline-block;margin-top:5px;font-size:10px;color:#7ab8f5;text-decoration:none">Ouvrir dans Meteora ↗</a>';
+}
+
 // ── Rafraîchissement de la bottom-sheet ───────────────────────────────────────
 let detTimer=null,detBusy=false;
 function startDetRefresh(){stopDetRefresh();detTimer=setInterval(()=>refreshDet(false),15000);}
@@ -2460,7 +2520,7 @@ async function refreshDet(manual){
   try{
     const t=tokens.find(x=>x.address===sel)||alerts.find(x=>x.address===sel)||window._manualTok;
     if(t){
-      const r=await fetch('https://api.dexscreener.com/latest/dex/tokens/'+sel);
+      const r=await fetch('https://api.dexscreener.com/latest/dex/tokens/'+sel,{cache:'no-store'});
       if(r.ok){
         const j=await r.json();
         const pairs=(j.pairs||[]).filter(p=>p.chainId==='solana');
@@ -2479,10 +2539,15 @@ async function refreshDet(manual){
         }
       }
       if(sel===t.address){
-        const sh=document.getElementById('sheet');
-        const sc=sh?sh.scrollTop:0;
-        const cur=sel;sel=null;selT(cur); // sel=null pour éviter le toggle éventuel, puis re-rendu
-        if(sh)sh.scrollTop=sc;
+        if(!manual&&mTvOpen===sel){
+          // chart ouvert : pas de re-rendu automatique (l'iframe serait rechargée) —
+          // les données du token restent à jour en mémoire, le 🔄 manuel force le re-rendu
+        }else{
+          const sh=document.getElementById('sheet');
+          const sc=sh?sh.scrollTop:0;
+          const cur=sel;sel=null;selT(cur); // sel=null pour éviter le toggle éventuel, puis re-rendu
+          if(sh)sh.scrollTop=sc;
+        }
       }
       const inf=document.getElementById('dRefreshInfo');
       if(inf)inf.textContent='maj '+new Date().toLocaleTimeString();
@@ -2491,16 +2556,19 @@ async function refreshDet(manual){
   if(btn)btn.textContent='🔄';
   detBusy=false;
 }
+let mTvOpen=null; // adresse du token dont le chart est ouvert (préservé au rafraîchissement)
 function mTvChart(url,btn){
   const wrap=btn.parentElement.querySelector('.mtv-wrap');
   if(!wrap||!url)return;
-  if(wrap.innerHTML){wrap.innerHTML='';btn.textContent='📈 Afficher le chart';return;}
+  if(wrap.innerHTML){wrap.innerHTML='';btn.textContent='📈 Afficher le chart';mTvOpen=null;return;}
   const src=url+(url.includes('?')?'&':'?')+'embed=1&theme=dark&trades=0&info=0';
   wrap.innerHTML='<iframe src="'+src+'" style="width:100%;height:320px;border:0;border-radius:10px;margin-top:8px;background:#0b1220" loading="lazy" allowfullscreen></iframe>';
   btn.textContent='📉 Masquer le chart';
+  mTvOpen=sel;
 }
 function closeD(){
   sel=null;
+  mTvOpen=null;
   stopDetRefresh();
   document.getElementById('sheetBg').classList.remove('open');
   document.getElementById('sheet').classList.remove('open');
@@ -2720,6 +2788,9 @@ var I18N_X={
 // — divers —
 "Prix d'achat invalide":"Invalid buy price","abonnés":"followers","vendeurs":"sellers","vendeurs (1h)":"sellers (1h)",
 "📡 À propos":"📡 About",
+"Chargement du pool Meteora…":"Loading Meteora pool…",
+"Ouvrir dans Meteora ↗":"Open in Meteora ↗",
+"🟡 POOL DLMM METEORA":"🟡 METEORA DLMM POOL",
 "Comptage plafonné pour économiser le quota Helius — valeur réelle ≥ affichée":"Count capped to save Helius quota — real value ≥ shown",
 "Rafraîchir les données maintenant (auto toutes les 15 s)":"Refresh data now (auto every 15 s)",
 "Rafraîchir maintenant (auto toutes les 15 s)":"Refresh now (auto every 15 s)",
@@ -2728,6 +2799,8 @@ var I18N_X={
 };
 var I18N_RX=[
 [/^(\d+)\s+alertes?$/,"$1 alerts"],
+[/\((\d+) pools — meilleure TVL\)/,"($1 pools — best TVL)"],
+[/\(1h : /,"(1h: "],
 [/^maj (.+)$/,"upd $1"],
 [/Bundle > (\d+)% du supply/g,"Bundle > $1% of supply"],
 [/Holders gonflés > (\d+)%/g,"Inflated holders > $1%"],
