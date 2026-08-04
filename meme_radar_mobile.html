@@ -187,8 +187,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     <select class="msel" id="minAge" onchange="applyFilter()">
       <option value="0">min: tout</option><option value="5">≥5m</option><option value="15">≥15m</option>
       <option value="30" selected>≥30m</option><option value="60">≥1h</option><option value="120">≥2h</option>
+      <option value="180">≥3h</option><option value="360">≥6h</option><option value="720">≥12h</option>
     </select>
     <select class="msel" id="maxAge" onchange="setMaxAge(this.value)">
+      <option value="6">max: 6h</option><option value="12">max: 12h</option>
       <option value="24" selected>max: 24h</option><option value="48">48h</option>
       <option value="72">72h</option><option value="168">7j</option>
     </select>
@@ -277,6 +279,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
       <div class="set-row">
         <button class="set-btn" id="notifBtn" onclick="requestNotif()" style="width:100%">🔔 Activer les notifications</button>
       </div>
+      <div class="set-row" style="flex-wrap:wrap;gap:8px;margin-top:6px">
+        <label style="font-size:11px;color:#c9d8f0"><input type="checkbox" id="ncTakeoff" onchange="setNotifCat('takeoff',this.checked)"> 🚀 Décollage</label>
+        <label style="font-size:11px;color:#c9d8f0"><input type="checkbox" id="ncTrending" onchange="setNotifCat('trending',this.checked)"> 📈 Trending</label>
+        <label style="font-size:11px;color:#c9d8f0"><input type="checkbox" id="ncDlmm" onchange="setNotifCat('dlmm',this.checked)"> 🟡 DLMM</label>
+        <label style="font-size:11px;color:#c9d8f0"><input type="checkbox" id="ncFib" onchange="setNotifCat('fib',this.checked)"> 📐 Fib</label>
+        <label style="font-size:11px;color:#c9d8f0"><input type="checkbox" id="ncWake" onchange="setNotifCat('wakeup',this.checked)"> ⏰ Réveil</label>
+      </div>
+      <div class="set-row" style="margin-top:6px">
+        <span style="font-size:11px;color:#7a8db0">Plafond par heure</span>
+        <select class="msel" id="ncCap" onchange="setNotifCap(this.value)">
+          <option value="3">3</option><option value="5" selected>5</option><option value="10">10</option><option value="0">∞</option>
+        </select>
+      </div>
+      <p id="notifHint" style="font-size:10px;line-height:1.4;margin-top:6px;display:none"></p>
       <p style="font-size:10px;color:#6a80a0;line-height:1.4;margin-top:4px">Reçois une notification même quand l'app est en arrière-plan. Ajoute le site à ton écran d'accueil pour de meilleurs résultats.</p>
     </div>
     <div class="set-card">
@@ -1194,6 +1210,7 @@ async function getGeckoData(mint){
       buyers24h:h24.buyers??null, sellers24h:h24.sellers??null,
       gVol1h:parseFloat(a.volume_usd?.h1)||null,
       gVol24h:parseFloat(a.volume_usd?.h24)||null,
+      poolAddr:a.address||((pool.id||'').startsWith('solana_')?pool.id.slice(7):null),
     };
   }
   geckoCache[mint]={ts:Date.now(),data:out};
@@ -1649,7 +1666,8 @@ function mkTok(pump,dex,rug,now,dlmm,boosts,trend,holderCount=null,devInfo=null,
   tok.riskReasons=rk.reasons;
   tok.dump=dumpSignal(tok);
   // Pousser le snapshot dans l'historique pour les prochains calculs de vélocité
-  pushHistory(mint,{ts:now,mcap:tok.mcap,holderCount,vol1h:tok.vol1h,price:parseFloat(tok.priceUsd)||null,buys:tok.buys1h,sells:tok.sells1h,total:tok.total,risk:tok.risk});
+  const _vi=calcViral(tok);tok.viral=_vi.score;tok.viralParts=_vi.parts;
+  pushHistory(mint,{ts:now,mcap:tok.mcap,holderCount,vol1h:tok.vol1h,price:parseFloat(tok.priceUsd)||null,buys:tok.buys1h,sells:tok.sells1h,total:tok.total,risk:tok.risk,xf:tok.xFollowers??null});
   return tok;
 }
 
@@ -1662,6 +1680,108 @@ function checkAlert(tok,now){
     notifyAlert(tok);
   }
 }
+
+
+// ── Notifications intelligentes (5 catégories, anti-saturation) ───────────────
+// Garde-fous : 1 notif par token et par catégorie (réarmée si le signal
+// disparaît), délai de calme de 30 min par token, plafond horaire global.
+// Au-delà du plafond, le déclenchement est journalisé sans notification.
+let notifCats={takeoff:true,trending:false,dlmm:false,fib:false,wakeup:false};
+let notifCap=5;
+try{const _nc=JSON.parse(localStorage.getItem('meme_notifcats')||'null');if(_nc){notifCats={...notifCats,..._nc.cats};notifCap=_nc.cap??5;}}catch(e){}
+function saveNotifCats(){try{localStorage.setItem('meme_notifcats',JSON.stringify({cats:notifCats,cap:notifCap}));}catch(e){}}
+function setNotifCat(k,v){notifCats[k]=v;saveNotifCats();}
+function setNotifCap(v){notifCap=parseInt(v);saveNotifCats();}
+const notifFired={},notifLast={};
+let notifTimes=[];
+let prevViral={},prevTrend={};
+function notifQuota(){
+  const cut=Date.now()-3600000;
+  notifTimes=notifTimes.filter(t=>t>cut);
+  return notifCap<=0||notifTimes.length<notifCap;
+}
+function fireNotif(tok,cat,title,body){
+  const k=cat+':'+tok.address;
+  const now=Date.now();
+  if(notifFired[k])return;
+  if(notifLast[tok.address]&&now-notifLast[tok.address]<1800000)return; // calme 30 min
+  notifFired[k]=true;notifLast[tok.address]=now;
+  alerts.unshift({...tok,alertTs:now,alertType:cat,alertPrice:parseFloat(tok.priceUsd)||null});
+  if(alerts.length>100)alerts.pop();
+  saveAlerts();renderAlerts();
+  if(!notifQuota())return; // plafond atteint : journalisé, pas notifié
+  notifTimes.push(now);
+  if(!notifEnabled||!('Notification'in window)||Notification.permission!=='granted')return;
+  try{const n=new Notification(title,{body,tag:cat+'-'+tok.address});n.onclick=()=>{window.focus();n.close();};}catch(e){}
+}
+function disarmNotif(tok,cat){delete notifFired[cat+':'+tok.address];}
+async function checkSmartNotifs(tok,now){
+  const pv=prevViral[tok.address];
+  const v=tok.viral??0;
+  prevViral[tok.address]=v;
+  const clean=tok.total>=minScore&&tok.wash!=='high'&&!tok.jupSus;
+
+  // ① Décollage confirmé : bond de viralité + token propre
+  if(notifCats.takeoff){
+    const jump=pv!=null&&(v-pv)>=20;
+    const cross=pv!=null&&pv<60&&v>=60;
+    if((jump||cross)&&clean)
+      fireNotif(tok,'takeoff',`🚀 ${tok.symbol} décolle — viralité ${v}/100`,
+        `Score ${tok.total}/${maxScore()} · MCap ${fn(tok.mcap)}${tok.hasDLMM===true?' · DLMM✓':''}`);
+    else if(v<50)disarmNotif(tok,'takeoff');
+  }
+
+  // ② Entrée en trending GeckoTerminal
+  if(notifCats.trending){
+    const rk=trendMap[tok.address]??null;
+    const was=prevTrend[tok.address]??null;
+    if(rk!=null&&was==null)
+      fireNotif(tok,'trending',`📈 ${tok.symbol} entre au trending #${rk}`,
+        `Score ${tok.total}/${maxScore()} · Viralité ${v}/100 · MCap ${fn(tok.mcap)}`);
+    if(rk==null)disarmNotif(tok,'trending');
+    prevTrend[tok.address]=rk;
+  }
+
+  // ③ Combo DLMM : pool qui paie + token propre (Meteora interrogé seulement ici)
+  if(notifCats.dlmm&&clean&&tok.hasDLMM===true&&!notifFired['dlmm:'+tok.address]){
+    try{
+      const mp=await getMeteoraDLMM(tok.address);
+      if(mp&&mp.feeTvl24h!=null&&mp.feeTvl24h>=5)
+        fireNotif(tok,'dlmm',`🟡 ${tok.symbol} — pool DLMM à ${(+mp.feeTvl24h).toFixed(1)} %/j`,
+          `Fee/TVL 24h ${(+mp.feeTvl24h).toFixed(1)} % · TVL ${fn(mp.tvl)} · Score ${tok.total}/${maxScore()}`);
+    }catch(e){}
+  }
+
+  // ④ Retracement en zone d'entrée (tokens épinglés uniquement)
+  if(notifCats.fib&&watchlist.has(tok.address)){
+    try{
+      const fb=await getFib(tok);
+      const p=parseFloat(tok.priceUsd)||null;
+      const pct=fibPct(fb,p);
+      if(pct!=null&&pct>=50&&pct<=61.8)
+        fireNotif(tok,'fib',`📐 ${tok.symbol} en zone 50–61,8 %`,
+          `Retracement ${pct.toFixed(0)} % depuis l'ATH · Prix ${fpr(tok.priceUsd)}`);
+      else if(pct!=null&&(pct<45||pct>67))disarmNotif(tok,'fib');
+    }catch(e){}
+  }
+
+  // ⑤ Réveil : token > 6h dont le volume 1h explose sa moyenne horaire
+  if(notifCats.wakeup&&tok.age>21600000&&tok.vol24h>0&&tok.vol1h>0){
+    const acc=tok.vol1h/(tok.vol24h/24);
+    if(acc>=4&&clean)
+      fireNotif(tok,'wakeup',`⏰ ${tok.symbol} se réveille — volume ×${acc.toFixed(1)}`,
+        `Vol 1h ${fn(tok.vol1h)} vs moy. ${fn(tok.vol24h/24)}/h · Score ${tok.total}/${maxScore()}`);
+    else if(acc<2)disarmNotif(tok,'wakeup');
+  }
+}
+
+function initNotifUI(){
+  const map={ncTakeoff:'takeoff',ncTrending:'trending',ncDlmm:'dlmm',ncFib:'fib',ncWake:'wakeup'};
+  for(const id in map){const el=document.getElementById(id);if(el)el.checked=!!notifCats[map[id]];}
+  const c=document.getElementById('ncCap');if(c)c.value=String(notifCap);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initNotifUI);
+else initNotifUI();
 
 // ── Alertes de SORTIE (dump sur tokens suivis) ────────────────────────────────
 let exitAlerted=new Set();
@@ -1688,21 +1808,40 @@ function checkExitAlert(tok,now){
 
 // ── Notifications navigateur ──────────────────────────────────────────────────
 let notifEnabled=localStorage.getItem('meme_notif')==='1';
+function notifState(){
+  if(!('Notification'in window))return'unsupported';
+  if(location.protocol==='file:'||(window.isSecureContext===false))return'insecure';
+  if(Notification.permission==='granted')return notifEnabled?'on':'off';
+  if(Notification.permission==='denied')return'blocked';
+  return'ask';
+}
+function notifExplain(st){
+  if(st==='unsupported')return"Ce navigateur ne gère pas les notifications.";
+  if(st==='insecure')return"Les notifications ne fonctionnent pas sur un fichier ouvert en local (file://). Utilise la version en ligne (https) : dlmmradar.github.io/dlmm-radar/";
+  if(st==='blocked')return"Notifications bloquées par le navigateur. Ouvre les réglages du site (icône à gauche de l'adresse) → Notifications → Autoriser, puis recharge la page.";
+  return"";
+}
 function requestNotif(){
-  if(!('Notification'in window)){showToast('Notifications non supportées');return;}
+  const st=notifState();
+  if(st==='unsupported'||st==='insecure'||st==='blocked'){showToast(st==='blocked'?'🔕 Bloquées par le navigateur':'🔕 Indisponibles ici');updateNotifBtn();return;}
+  if(st==='on'){notifEnabled=false;localStorage.setItem('meme_notif','0');updateNotifBtn();showToast('🔕 Notifications désactivées');return;}
   Notification.requestPermission().then(p=>{
     notifEnabled=(p==='granted');
     localStorage.setItem('meme_notif',notifEnabled?'1':'0');
     updateNotifBtn();
-    if(notifEnabled){showToast('🔔 Notifications activées');try{new Notification('Meme Radar',{body:'Notifications activées ✓'});}catch{}}
-  });
+    if(notifEnabled){showToast('🔔 Notifications activées');try{new Notification('Meme Radar',{body:'Notifications activées ✓'});}catch(e){}}
+    else showToast('🔕 Refusées par le navigateur');
+  }).catch(()=>{updateNotifBtn();});
 }
 function updateNotifBtn(){
   const b=document.getElementById('notifBtn');
   if(!b)return;
-  const granted=('Notification'in window)&&Notification.permission==='granted'&&notifEnabled;
-  b.textContent=granted?'🔔 Notifications activées ✓':'🔔 Activer les notifications';
-  b.classList.toggle('save',granted);
+  const st=notifState();
+  const lbl={on:'🔔 Notifications activées ✓',off:'🔔 Notifications désactivées',ask:'🔔 Activer les notifications',blocked:'🔕 Notifications bloquées',insecure:'🔕 Notifications : https requis',unsupported:'🔕 Non supporté'};
+  b.textContent=lbl[st]||'🔔 Activer les notifications';
+  b.classList.toggle('save',st==='on');
+  const h=document.getElementById('notifHint');
+  if(h){const e=notifExplain(st);h.textContent=e||'';h.style.display=e?'':'none';h.style.color='#f87171';}
 }
 function notifyAlert(tok){
   if(!notifEnabled||!('Notification'in window)||Notification.permission!=='granted')return;
@@ -1828,7 +1967,53 @@ function importConfig(input){
   rd.readAsText(f);
 }
 // ── Main scan ─────────────────────────────────────────────────────────────────
+
+// ── Indice de viralité (0-100) — traction observable, HORS score de sécurité ──
+// Composantes : croissance followers 𝕏 (30) + trending GeckoTerminal (25)
+// + vélocité holders (25) + accélération volume/acheteurs (20).
+// Pénalité wash trading. Le boost DexScreener (visibilité payée) est affiché
+// à part et n'entre JAMAIS dans l'indice.
+let trendMap={};
+async function fetchTrending(){
+  try{
+    const d=await get('https://api.geckoterminal.com/api/v2/networks/solana/trending_pools?page=1',8000);
+    const map={};
+    (d?.data||[]).forEach((p,i)=>{
+      const id=p?.relationships?.base_token?.data?.id||'';
+      if(id.startsWith('solana_')&&map[id.slice(7)]==null)map[id.slice(7)]=i+1;
+    });
+    if(Object.keys(map).length)trendMap=map;
+  }catch(e){}
+}
+function calcViral(t){
+  const parts={social:0,trend:0,holders:0,volume:0};
+  const hs=(history[t.address]||[]).filter(p=>p.xf!=null&&p.xf>0);
+  if(hs.length>=2){
+    const a=hs[0],b=hs[hs.length-1];
+    const dtH=(b.ts-a.ts)/3600000;
+    if(dtH>=0.15&&a.xf>=50&&b.xf>a.xf){
+      const pctH=((b.xf-a.xf)/a.xf)*100/dtH; // % de croissance par heure
+      parts.social=Math.min(30,Math.round(pctH*1.5)); // 20 %/h → 30 pts
+    }
+  }
+  const rk=trendMap[t.address];
+  if(rk!=null)parts.trend=rk<=5?25:rk<=10?20:15;
+  if(t.hVel!=null&&t.hVel>0)parts.holders=Math.min(25,Math.round(t.hVel*5)); // 5 holders/min → 25 pts
+  let vol=0;
+  if(t.vol24h>0&&t.vol1h>0){
+    const acc=t.vol1h/(t.vol24h/24); // volume 1h vs moyenne horaire 24h
+    if(acc>=1.5)vol+=Math.min(10,Math.round((acc-1)*4));
+  }
+  if(t.buys1h>=100)vol+=Math.min(10,Math.round(t.buys1h/60));
+  parts.volume=Math.min(20,vol);
+  let score=parts.social+parts.trend+parts.holders+parts.volume;
+  if(t.wash==='high')score=Math.max(0,score-15);
+  else if(t.wash==='mid')score=Math.max(0,score-7);
+  return{score:Math.min(100,score),parts};
+}
+
 async function runScan(){
+  fetchTrending();
   scanCycle++;
   setStat('warn','Scan en cours — collecte des sources…');
   try{
@@ -1901,7 +2086,7 @@ async function runScan(){
         if(r.rej==='age')rejAge++;
         else if(r.rej==='mcap')rejMcap++;
         else if(r.rej==='nodata')rejNoData++;
-        else if(r.tok){res.push(r.tok);lastTotals[r.tok.address]=r.tok.total;checkAlert(r.tok,now);checkExitAlert(r.tok,now);}
+        else if(r.tok){res.push(r.tok);lastTotals[r.tok.address]=r.tok.total;checkAlert(r.tok,now);checkExitAlert(r.tok,now);checkSmartNotifs(r.tok,now);}
       }
       tokens=res.sort((a,b)=>b.total-a.total);
       render();upd();
@@ -2226,7 +2411,7 @@ function tokenCard(t){
   <div class="card ${t.hasDLMM===true?'dlmm':''}" onclick="selT('${t.address}')">
     <div class="card-top">
       <div>
-        <div class="card-sym">${esc(t.symbol)}${isPinned?' 📍':''}${(()=>{const pn=posPnl(t);return pn!=null?`<span style="font-size:10px;font-weight:700;margin-left:5px;padding:1px 5px;border-radius:5px;background:${pn>=0?'#16a34a25':'#dc262625'};color:${pn>=0?'#4ade80':'#f87171'}">💼${pn>=0?'+':''}${pn.toFixed(0)}%</span>`:''})()}</div>
+        <div class="card-sym">${esc(t.symbol)}${isPinned?' 📍':''}${t.viral>=60?' 🔥':''}${(()=>{const pn=posPnl(t);return pn!=null?`<span style="font-size:10px;font-weight:700;margin-left:5px;padding:1px 5px;border-radius:5px;background:${pn>=0?'#16a34a25':'#dc262625'};color:${pn>=0?'#4ade80':'#f87171'}">💼${pn>=0?'+':''}${pn.toFixed(0)}%</span>`:''})()}</div>
         <div class="card-name">${esc(t.name).slice(0,28)}</div>
       </div>
       <div class="card-score"><span class="pill ${pc(t.total)}">${t.total}/${maxScore()}</span>${trajArrow(t)}</div>
@@ -2375,6 +2560,7 @@ function selT(addr){
       <div class="sheet-sh">Signaux</div>
       <div class="sheet-row"><span class="k">DLMM Meteora</span><span class="v">${t.hasDLMM===true?'✓ Trouvée':t.hasDLMM===false?'✗ Aucune':'Inconnu'}</span></div>
       <div class="sheet-row"><span class="k">Vélocité holders</span><span class="v ${t.hVel>5?'dev-holds':t.hVel<0?'dev-sold':''}">${t.hVel!=null?(t.hVel>0?'+':'')+t.hVel.toFixed(1)+'/min':'— (2 scans requis)'}</span></div>
+      <div class="sheet-row"><span class="k">🔥 Viralité</span><span class="v" style="color:${t.viral>=60?'#f97316':t.viral>=30?'#fde68a':'#6a80a0'}" title="Indice de traction observable — hors score de sécurité. Composantes : social ${t.viralParts?.social||0} · trending ${t.viralParts?.trend||0} · holders ${t.viralParts?.holders||0} · volume ${t.viralParts?.volume||0}">${t.viral!=null?t.viral+'/100':'—'}${t.boostAmt>0?' 📢':''}</span></div>
       <div class="sheet-row"><span class="k">Vélocité volume</span><span class="v">${t.vVel!=null?t.vVel.toFixed(2)+'×':'—'}</span></div>
       <div class="sheet-row"><span class="k">Top 10 holders</span><span class="v">${t.top10pct!=null?t.top10pct+'%':'—'}</span></div>
       <div class="sheet-row"><span class="k">Snipers / insiders</span><span class="v ${t.sniperPct>25?'dev-sold':t.sniperPct>10?'dev-unk':t.sniperPct!=null?'dev-holds':''}">${t.sniperPct!=null&&t.sniperPct>0?t.sniperPct+'%':''}${t.sniperCount?(t.sniperPct>0?' · ':'')+t.sniperCount+' wallets':t.sniperPct==null?'—':''}</span></div>
@@ -2393,6 +2579,7 @@ function selT(addr){
       ${t.riskReasons&&t.riskReasons.length?`<div class="sheet-row"><span class="k">Raisons</span><span class="v" style="font-size:11px">${t.riskReasons.join(', ')}</span></div>`:''}
     </div>
     <div class="sheet-sec">
+      <div id="dFib" style="display:none;margin:2px 2px 10px;padding:8px 10px;border:1px solid #2a3f6040;border-radius:8px;background:#16213a40"></div>
       <div id="dMeteo" style="display:none;margin:2px 2px 10px;padding:8px 10px;border:1px solid #92400e40;border-radius:8px;background:#92400e0d"></div>
       <div class="sheet-sh">💼 Ma position</div>
       ${(()=>{const p=positions[t.address];const pn=posPnl(t);
@@ -2440,21 +2627,101 @@ function selT(addr){
       <a class="sl-btn" style="color:#7ab8f5" href="https://x.com/search?q=${t.address}&f=live" target="_blank">🔎 Mentions 𝕏 ↗</a>
     </div>
     <div style="height:20px"></div>`;
+  const _sh=document.getElementById('sheet');
+  const _wasOpen=_sh.classList.contains('open');
   document.getElementById('sheetBody').innerHTML=body;
   document.getElementById('sheetBg').classList.add('open');
-  document.getElementById('sheet').classList.add('open');
+  if(_wasOpen){_sh.classList.add('open');}
+  else{
+    // Ouverture : on force un reflow puis on ajoute la classe à la frame suivante.
+    // Sans ça, Chrome mobile regroupe l'injection du contenu et le changement de
+    // classe dans la même frame : la transition ne démarre pas et la sheet reste
+    // hors écran jusqu'au prochain recalcul de mise en page.
+    void _sh.offsetHeight;
+    requestAnimationFrame(()=>{_sh.classList.add('open');});
+  }
+  _sh.scrollTop=0;
   if(t.twitterUrl&&t.xFollowers==null&&!t._xTried){
     t._xTried=true;
     getXCommunity(t.twitterUrl).then(xc=>{
       if(xc&&xc.followers!=null){t.xFollowers=xc.followers;t.xHandle=xc.handle;if(sel===addr)selT(addr);}
     }).catch(()=>{});
   }
-  loadMeteoraBlock(t);
+  setTimeout(()=>{if(sel===addr){loadMeteoraBlock(t);loadFibBlock(t);}},60);
   if(mTvOpen===addr){
     const b=document.querySelector('#sheetBody [onclick^="mTvChart"]');
     if(b)mTvChart(t.url,b); // ré-ouvre le chart (wrap vide après re-rendu → ouverture)
   }else if(mTvOpen&&mTvOpen!==addr){mTvOpen=null;}
   startDetRefresh();
+}
+
+
+// ── Retracement Fibonacci automatique (chandeliers GeckoTerminal, cache 5 min) ──
+const fibCache={};
+async function getFib(t){
+  const mint=t.address;
+  const c=fibCache[mint];
+  if(c&&Date.now()-c.ts<300000)return c.v;
+  let v=null;
+  try{
+    const g=await getGeckoData(mint);
+    const poolAddr=g&&g.poolAddr;
+    if(poolAddr){
+      const agg=(t.age!=null&&t.age<3*3600000)?1:5; // bougies 1 min (<3h) sinon 5 min
+      const d=await get('https://api.geckoterminal.com/api/v2/networks/solana/pools/'+poolAddr+'/ohlcv/minute?aggregate='+agg+'&limit=1000',9000);
+      let list=d?.data?.attributes?.ohlcv_list;
+      if(Array.isArray(list)&&list.length>=8){
+        list=[...list].sort((a,b)=>a[0]-b[0]); // chronologique
+        let athI=0;
+        for(let i=1;i<list.length;i++)if(+list[i][2]>+list[athI][2])athI=i;
+        const high=+list[athI][2];
+        let low=Infinity;
+        for(let i=0;i<=athI;i++)if(+list[i][3]<low&&+list[i][3]>0)low=+list[i][3];
+        // garde-fous : ATH dès la 1re bougie (dump depuis le lancement) ou amplitude <15 %
+        if(athI>0&&isFinite(low)&&high>low&&(high-low)/high>=0.15){
+          const R=[23.6,38.2,50,61.8,78.6];
+          v={high,low,levels:R.map(r=>({r,price:high-(high-low)*r/100}))};
+        }
+      }
+    }
+  }catch(e){}
+  fibCache[mint]={ts:Date.now(),v};
+  return v;
+}
+function fibPct(v,price){
+  if(!v||!price)return null;
+  return Math.max(0,Math.min(150,(v.high-price)/(v.high-v.low)*100));
+}
+async function loadFibBlock(t){
+  const box=document.getElementById('dFib');
+  if(!box)return;
+  if(!box.innerHTML)box.innerHTML='<div style="font-size:10px;color:#4a5d80">Chargement des chandeliers…</div>';
+  box.style.display='';
+  const v=await getFib(t);
+  if(sel!==t.address)return;
+  if(!v){box.innerHTML='';box.style.display='none';return;}
+  const cur=parseFloat(t.priceUsd)||null;
+  const pct=fibPct(v,cur);
+  let near=null;
+  if(pct!=null){
+    let bd=1e9;
+    v.levels.forEach(l=>{const dd=Math.abs(l.r-pct);if(dd<bd){bd=dd;near=l.r;}});
+    if(pct<11.8)near=null; // encore proche de l'ATH, aucun niveau atteint
+  }
+  let synth="";
+  if(pct!=null){
+    const col=pct>=78.6?"#f87171":pct>=50?"#fde68a":"#4ade80";
+    synth="Retracement : <b style=\"color:"+col+"\">"+pct.toFixed(0)+" %</b> depuis l'ATH";
+    if(pct>90)synth+=" — sous le 78,6 % ⚠";
+    else if(near!=null)synth+=" — zone du "+near+" %";
+  }
+  box.innerHTML=
+    '<div style="font-size:10px;font-weight:700;color:#93b8e8;letter-spacing:.4px;margin-bottom:4px">📐 RETRACEMENT FIBONACCI <span style="font-weight:400;color:#4a5d80">(ATH '+fpr(v.high)+' · low '+fpr(v.low)+')</span></div>'+
+    (synth?'<div style="font-size:10px;color:#c9d8f0;margin-bottom:5px">'+synth+'</div>':'')+
+    '<div style="display:flex;flex-wrap:wrap;gap:3px 12px;font-size:10px">'+
+    v.levels.map(function(l){const isN=near===l.r;return '<span style="'+(isN?'color:#fde68a;font-weight:700':'color:#6a80a0')+'">'+l.r+'% '+fpr(l.price)+(isN?' ◄':'')+'</span>';}).join('')+
+    '</div>'+
+    '<div style="font-size:9px;color:#4a5d80;margin-top:4px">Niveaux conventionnels calculés sur les chandeliers du pool (low → ATH) — une convention de marché, pas une prédiction.</div>';
 }
 
 // ── Enrichissement pool DLMM via l'API Meteora (détail uniquement, cache 5 min) ──
@@ -2545,7 +2812,7 @@ async function refreshDet(manual){
         }else{
           const sh=document.getElementById('sheet');
           const sc=sh?sh.scrollTop:0;
-          const cur=sel;sel=null;selT(cur); // sel=null pour éviter le toggle éventuel, puis re-rendu
+          const cur=sel;selT(cur); // re-rendu (la sheet reste ouverte, pas de ré-animation)
           if(sh)sh.scrollTop=sc;
         }
       }
@@ -2788,6 +3055,28 @@ var I18N_X={
 // — divers —
 "Prix d'achat invalide":"Invalid buy price","abonnés":"followers","vendeurs":"sellers","vendeurs (1h)":"sellers (1h)",
 "📡 À propos":"📡 About",
+"🔔 Notifications activées ✓":"🔔 Notifications on ✓","🔔 Notifications désactivées":"🔔 Notifications off",
+"🔕 Notifications bloquées":"🔕 Notifications blocked","🔕 Notifications : https requis":"🔕 Notifications: https required",
+"🔕 Non supporté":"🔕 Not supported","🔕 Bloquées par le navigateur":"🔕 Blocked by the browser",
+"🔕 Indisponibles ici":"🔕 Unavailable here","🔕 Refusées par le navigateur":"🔕 Denied by the browser",
+"🔕 Notifications désactivées":"🔕 Notifications off",
+"Ce navigateur ne gère pas les notifications.":"This browser does not support notifications.",
+"Les notifications ne fonctionnent pas sur un fichier ouvert en local (file://). Utilise la version en ligne (https) : dlmmradar.github.io/dlmm-radar/":"Notifications don't work on a locally opened file (file://). Use the online version (https): dlmmradar.github.io/dlmm-radar/",
+"Notifications bloquées par le navigateur. Ouvre les réglages du site (icône à gauche de l'adresse) → Notifications → Autoriser, puis recharge la page.":"Notifications blocked by the browser. Open site settings (icon left of the address bar) → Notifications → Allow, then reload the page.",
+"Notifs :":"Notifs:","🚀 Décollage":"🚀 Takeoff","📈 Trending":"📈 Trending","🟡 DLMM":"🟡 DLMM",
+"📐 Fib":"📐 Fib","⏰ Réveil":"⏰ Wake-up","max/h":"max/h","Plafond par heure":"Cap per hour",
+"Catégories de notifications":"Notification categories",
+"Bond de viralité sur un token au score correct":"Virality jump on a token with a decent score",
+"Entrée dans le trending GeckoTerminal":"Entering GeckoTerminal trending",
+"Pool DLMM rémunérateur (fee/TVL 24h ≥ 5 %) sur un token propre":"Rewarding DLMM pool (24h fee/TVL ≥ 5%) on a clean token",
+"Tokens épinglés : prix entrant en zone 50–61,8 % de retracement":"Pinned tokens: price entering the 50–61.8% retracement zone",
+"Token > 6h dont le volume horaire explose sa moyenne":"Token > 6h whose hourly volume spikes above its average",
+"Plafond de notifications par heure — au-delà, les déclenchements sont journalisés sans notification":"Hourly notification cap — beyond it, triggers are logged without notifying",
+"Chargement des chandeliers…":"Loading candles…",
+"📐 RETRACEMENT FIBONACCI":"📐 FIBONACCI RETRACEMENT",
+"Retracement :":"Retracement:",
+"Niveaux conventionnels calculés sur les chandeliers du pool (low → ATH) — une convention de marché, pas une prédiction.":"Conventional levels computed from the pool's candles (low → ATH) — a market convention, not a prediction.",
+"🔥 Viralité":"🔥 Virality",
 "Chargement du pool Meteora…":"Loading Meteora pool…",
 "Ouvrir dans Meteora ↗":"Open in Meteora ↗",
 "🟡 POOL DLMM METEORA":"🟡 METEORA DLMM POOL",
@@ -2799,6 +3088,15 @@ var I18N_X={
 };
 var I18N_RX=[
 [/^(\d+)\s+alertes?$/,"$1 alerts"],
+[/^🚀 (.+) décolle — viralité (\d+)\/100$/,"🚀 $1 taking off — virality $2/100"],
+[/^📈 (.+) entre au trending #(\d+)$/,"📈 $1 entered trending #$2"],
+[/^⏰ (.+) se réveille — volume ×([\d.]+)$/,"⏰ $1 waking up — volume ×$2"],
+[/^📐 (.+) en zone 50–61,8 %$/,"📐 $1 in the 50–61.8% zone"],
+[/depuis l'ATH/,"from ATH"],
+[/— zone du ([\d.]+) %/,"— $1 % zone"],
+[/— sous le 78,6 % ⚠/,"— below 78.6 % ⚠"],
+[/Indice de traction observable — hors score de sécurité\. Composantes : social/,"Observable traction index — separate from the safety score. Components: social"],
+[/📢 boost payé actif \(non compté\)/,"📢 paid boost active (not counted)"],
 [/\((\d+) pools — meilleure TVL\)/,"($1 pools — best TVL)"],
 [/\(1h : /,"(1h: "],
 [/^maj (.+)$/,"upd $1"],

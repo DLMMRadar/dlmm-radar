@@ -240,6 +240,16 @@ th.sortable span{font-size:9px;color:#4ade80;margin-left:2px}
   <span class="env-tag" id="envTag">⟳</span>
   <div class="sp"></div>
   <button class="btn" id="notifBtn" onclick="requestNotif()" style="padding:5px 9px;font-size:11px">🔔 Activer notifs</button>
+  <span class="lbl" title="Catégories de notifications">Notifs :</span>
+  <label class="lbl" style="cursor:pointer" title="Bond de viralité sur un token au score correct"><input type="checkbox" id="ncTakeoff" onchange="setNotifCat('takeoff',this.checked)"> 🚀 Décollage</label>
+  <label class="lbl" style="cursor:pointer" title="Entrée dans le trending GeckoTerminal"><input type="checkbox" id="ncTrending" onchange="setNotifCat('trending',this.checked)"> 📈 Trending</label>
+  <label class="lbl" style="cursor:pointer" title="Pool DLMM rémunérateur (fee/TVL 24h ≥ 5 %) sur un token propre"><input type="checkbox" id="ncDlmm" onchange="setNotifCat('dlmm',this.checked)"> 🟡 DLMM</label>
+  <label class="lbl" style="cursor:pointer" title="Tokens épinglés : prix entrant en zone 50–61,8 % de retracement"><input type="checkbox" id="ncFib" onchange="setNotifCat('fib',this.checked)"> 📐 Fib</label>
+  <label class="lbl" style="cursor:pointer" title="Token > 6h dont le volume horaire explose sa moyenne"><input type="checkbox" id="ncWake" onchange="setNotifCat('wakeup',this.checked)"> ⏰ Réveil</label>
+  <span class="lbl">max/h</span>
+  <select id="ncCap" onchange="setNotifCap(this.value)" style="font-size:11px" title="Plafond de notifications par heure — au-delà, les déclenchements sont journalisés sans notification">
+    <option value="3">3</option><option value="5" selected>5</option><option value="10">10</option><option value="0">∞</option>
+  </select>
   <span class="lbl">Scan toutes les</span>
   <select id="scanInt" onchange="setScanInterval(+this.value)" title="Temporisation entre la fin d'un scan et le début du suivant">
     <option value="30">30s</option><option value="45" selected>45s</option>
@@ -293,9 +303,14 @@ th.sortable span{font-size:9px;color:#4ade80;margin-left:2px}
     <option value="30" selected>30m</option>
     <option value="60">1h</option>
     <option value="120">2h</option>
+    <option value="180">3h</option>
+    <option value="360">6h</option>
+    <option value="720">12h</option>
   </select>
   <span class="lbl">Âge max :</span>
   <select id="maxAge" onchange="setMaxAge(this.value)" style="font-size:11px" title="Âge maximum des tokens inclus dans le scan">
+    <option value="6">6h</option>
+    <option value="12">12h</option>
     <option value="24" selected>24h</option>
     <option value="48">48h</option>
     <option value="72">72h</option>
@@ -461,6 +476,7 @@ th.sortable span{font-size:9px;color:#4ade80;margin-left:2px}
       <div class="dr"><span class="k">Score de risque</span><span class="v" id="drisk">—</span></div>
       <div class="dr"><span class="k">RugCheck</span><span class="v" id="drg">—</span></div>
       <div class="dr"><span class="k">Vélocité holders</span><span class="v" id="dhvel">—</span></div>
+      <div class="dr"><span class="k">🔥 Viralité</span><span class="v" id="dviral" title="">—</span></div>
       <div class="dr"><span class="k">Vélocité volume</span><span class="v" id="dvvel">—</span></div>
       <div class="dr"><span class="k">Top 10 holders</span><span class="v" id="dhd">—</span></div>
       <div class="dr"><span class="k">Snipers / insiders</span><span class="v" id="dsnip">—</span></div>
@@ -485,6 +501,7 @@ th.sortable span{font-size:9px;color:#4ade80;margin-left:2px}
       <div class="bs"><div class="n" id="dbs2">—</div><div class="l">score sur 12</div></div>
     </div>
     <div class="ds" id="dPosSec">
+      <div id="dFib" style="display:none;margin:2px 0 10px;padding:8px 10px;border:1px solid #2a3f6040;border-radius:8px;background:#16213a40"></div>
       <div id="dMeteo" style="display:none;margin:2px 0 10px;padding:8px 10px;border:1px solid #92400e40;border-radius:8px;background:#92400e0d"></div>
       <div class="dsh">💼 Ma position</div>
       <div id="dPosView" style="display:none;margin-bottom:8px">
@@ -923,7 +940,7 @@ function renderWatch(){
       <td style="color:#fb923c">${fn(t.volAll)}</td>
       <td class="${hc(t.top10pct)}">${t.top10pct!=null?t.top10pct+'%':'—'}</td>
       <td class="${t.holderCount==null?'':t.holderCount>=minHolders?'hld-ok':'hld-low'}" title="${t.holderFloor?'Comptage plafonné pour économiser le quota Helius — valeur réelle ≥ affichée':''}">${t.holderFloor?'≥':''}${fmtH(t.holderCount)}</td>
-      <td>${t.risk!=null?`<span class="risk-badge ${t.risk>=60?'risk-hi':t.risk>=30?'risk-mid':'risk-lo'}" title="${(t.riskReasons||[]).join(', ')}">${t.risk}</span>`:'—'}${t.dump?'<span style="color:#f87171">⚠</span>':''}${t.wash==='high'?'<span title="Wash trading">🌀</span>':''}${t.jupSus?'<span title="Suspect Jupiter">⛔</span>':''}${t.ticker&&t.ticker.recycled?'<span title="Ticker recyclé">♻️</span>':''}</td>
+      <td>${t.risk!=null?`<span class="risk-badge ${t.risk>=60?'risk-hi':t.risk>=30?'risk-mid':'risk-lo'}" title="${(t.riskReasons||[]).join(', ')}">${t.risk}</span>`:'—'}${t.dump?'<span style="color:#f87171">⚠</span>':''}${t.wash==='high'?'<span title="Wash trading">🌀</span>':''}${t.viral>=60?`<span title="Viralité ${t.viral}/100">🔥</span>`:''}${t.jupSus?'<span title="Suspect Jupiter">⛔</span>':''}${t.ticker&&t.ticker.recycled?'<span title="Ticker recyclé">♻️</span>':''}</td>
       <td><div class="dots">${CR.map(c=>{const v=t.scores[c.id];const off=!activeCrit.has(c.id);return`<div class="d ${off?'du':v===true?'dy':v===false?'dn2':'du'}" title="${c.lbl}" style="${off?'opacity:.25':''}">${off?'—':v===true?'✓':v===false?'✗':'·'}</div>`}).join('')}</div></td>
       <td><span class="pill ${pc(t.total)}">${t.total}/${maxScore()}</span>${trajArrow(t)}</td>
       <td onclick="event.stopPropagation()">
@@ -1528,6 +1545,7 @@ async function getGeckoData(mint){
       buyers24h:h24.buyers??null, sellers24h:h24.sellers??null,
       gVol1h:parseFloat(a.volume_usd?.h1)||null,
       gVol24h:parseFloat(a.volume_usd?.h24)||null,
+      poolAddr:a.address||((pool.id||'').startsWith('solana_')?pool.id.slice(7):null),
     };
   }
   geckoCache[mint]={ts:Date.now(),data:out};
@@ -1995,7 +2013,8 @@ function mkTok(pump,dex,rug,now,dlmm,boosts,trend,holderCount=null,devInfo=null,
   tok.riskReasons=rk.reasons;
   tok.dump=dumpSignal(tok);
   // Pousser le snapshot dans l'historique pour les prochains calculs de vélocité
-  pushHistory(mint,{ts:now,mcap:tok.mcap,holderCount,vol1h:tok.vol1h,price:parseFloat(tok.priceUsd)||null,buys:tok.buys1h,sells:tok.sells1h,total:tok.total,risk:tok.risk});
+  const _vi=calcViral(tok);tok.viral=_vi.score;tok.viralParts=_vi.parts;
+  pushHistory(mint,{ts:now,mcap:tok.mcap,holderCount,vol1h:tok.vol1h,price:parseFloat(tok.priceUsd)||null,buys:tok.buys1h,sells:tok.sells1h,total:tok.total,risk:tok.risk,xf:tok.xFollowers??null});
   return tok;
 }
 
@@ -2008,6 +2027,108 @@ function checkAlert(tok,now){
     notifyAlert(tok);
   }
 }
+
+
+// ── Notifications intelligentes (5 catégories, anti-saturation) ───────────────
+// Garde-fous : 1 notif par token et par catégorie (réarmée si le signal
+// disparaît), délai de calme de 30 min par token, plafond horaire global.
+// Au-delà du plafond, le déclenchement est journalisé sans notification.
+let notifCats={takeoff:true,trending:false,dlmm:false,fib:false,wakeup:false};
+let notifCap=5;
+try{const _nc=JSON.parse(localStorage.getItem('meme_notifcats')||'null');if(_nc){notifCats={...notifCats,..._nc.cats};notifCap=_nc.cap??5;}}catch(e){}
+function saveNotifCats(){try{localStorage.setItem('meme_notifcats',JSON.stringify({cats:notifCats,cap:notifCap}));}catch(e){}}
+function setNotifCat(k,v){notifCats[k]=v;saveNotifCats();}
+function setNotifCap(v){notifCap=parseInt(v);saveNotifCats();}
+const notifFired={},notifLast={};
+let notifTimes=[];
+let prevViral={},prevTrend={};
+function notifQuota(){
+  const cut=Date.now()-3600000;
+  notifTimes=notifTimes.filter(t=>t>cut);
+  return notifCap<=0||notifTimes.length<notifCap;
+}
+function fireNotif(tok,cat,title,body){
+  const k=cat+':'+tok.address;
+  const now=Date.now();
+  if(notifFired[k])return;
+  if(notifLast[tok.address]&&now-notifLast[tok.address]<1800000)return; // calme 30 min
+  notifFired[k]=true;notifLast[tok.address]=now;
+  alerts.unshift({...tok,alertTs:now,alertType:cat,alertPrice:parseFloat(tok.priceUsd)||null});
+  if(alerts.length>100)alerts.pop();
+  saveAlerts();renderAlerts();
+  if(!notifQuota())return; // plafond atteint : journalisé, pas notifié
+  notifTimes.push(now);
+  if(!notifEnabled||!('Notification'in window)||Notification.permission!=='granted')return;
+  try{const n=new Notification(title,{body,tag:cat+'-'+tok.address});n.onclick=()=>{window.focus();n.close();};}catch(e){}
+}
+function disarmNotif(tok,cat){delete notifFired[cat+':'+tok.address];}
+async function checkSmartNotifs(tok,now){
+  const pv=prevViral[tok.address];
+  const v=tok.viral??0;
+  prevViral[tok.address]=v;
+  const clean=tok.total>=minScore&&tok.wash!=='high'&&!tok.jupSus;
+
+  // ① Décollage confirmé : bond de viralité + token propre
+  if(notifCats.takeoff){
+    const jump=pv!=null&&(v-pv)>=20;
+    const cross=pv!=null&&pv<60&&v>=60;
+    if((jump||cross)&&clean)
+      fireNotif(tok,'takeoff',`🚀 ${tok.symbol} décolle — viralité ${v}/100`,
+        `Score ${tok.total}/${maxScore()} · MCap ${fn(tok.mcap)}${tok.hasDLMM===true?' · DLMM✓':''}`);
+    else if(v<50)disarmNotif(tok,'takeoff');
+  }
+
+  // ② Entrée en trending GeckoTerminal
+  if(notifCats.trending){
+    const rk=trendMap[tok.address]??null;
+    const was=prevTrend[tok.address]??null;
+    if(rk!=null&&was==null)
+      fireNotif(tok,'trending',`📈 ${tok.symbol} entre au trending #${rk}`,
+        `Score ${tok.total}/${maxScore()} · Viralité ${v}/100 · MCap ${fn(tok.mcap)}`);
+    if(rk==null)disarmNotif(tok,'trending');
+    prevTrend[tok.address]=rk;
+  }
+
+  // ③ Combo DLMM : pool qui paie + token propre (Meteora interrogé seulement ici)
+  if(notifCats.dlmm&&clean&&tok.hasDLMM===true&&!notifFired['dlmm:'+tok.address]){
+    try{
+      const mp=await getMeteoraDLMM(tok.address);
+      if(mp&&mp.feeTvl24h!=null&&mp.feeTvl24h>=5)
+        fireNotif(tok,'dlmm',`🟡 ${tok.symbol} — pool DLMM à ${(+mp.feeTvl24h).toFixed(1)} %/j`,
+          `Fee/TVL 24h ${(+mp.feeTvl24h).toFixed(1)} % · TVL ${fn(mp.tvl)} · Score ${tok.total}/${maxScore()}`);
+    }catch(e){}
+  }
+
+  // ④ Retracement en zone d'entrée (tokens épinglés uniquement)
+  if(notifCats.fib&&watchlist.has(tok.address)){
+    try{
+      const fb=await getFib(tok);
+      const p=parseFloat(tok.priceUsd)||null;
+      const pct=fibPct(fb,p);
+      if(pct!=null&&pct>=50&&pct<=61.8)
+        fireNotif(tok,'fib',`📐 ${tok.symbol} en zone 50–61,8 %`,
+          `Retracement ${pct.toFixed(0)} % depuis l'ATH · Prix ${fpr(tok.priceUsd)}`);
+      else if(pct!=null&&(pct<45||pct>67))disarmNotif(tok,'fib');
+    }catch(e){}
+  }
+
+  // ⑤ Réveil : token > 6h dont le volume 1h explose sa moyenne horaire
+  if(notifCats.wakeup&&tok.age>21600000&&tok.vol24h>0&&tok.vol1h>0){
+    const acc=tok.vol1h/(tok.vol24h/24);
+    if(acc>=4&&clean)
+      fireNotif(tok,'wakeup',`⏰ ${tok.symbol} se réveille — volume ×${acc.toFixed(1)}`,
+        `Vol 1h ${fn(tok.vol1h)} vs moy. ${fn(tok.vol24h/24)}/h · Score ${tok.total}/${maxScore()}`);
+    else if(acc<2)disarmNotif(tok,'wakeup');
+  }
+}
+
+function initNotifUI(){
+  const map={ncTakeoff:'takeoff',ncTrending:'trending',ncDlmm:'dlmm',ncFib:'fib',ncWake:'wakeup'};
+  for(const id in map){const el=document.getElementById(id);if(el)el.checked=!!notifCats[map[id]];}
+  const c=document.getElementById('ncCap');if(c)c.value=String(notifCap);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initNotifUI);
+else initNotifUI();
 
 // ── Alertes de SORTIE (dump sur tokens suivis) ────────────────────────────────
 let exitAlerted=new Set();
@@ -2037,22 +2158,42 @@ function checkExitAlert(tok,now){
 
 // ── Notifications navigateur ──────────────────────────────────────────────────
 let notifEnabled=localStorage.getItem('meme_notif')==='1';
+function notifState(){
+  if(!('Notification'in window))return'unsupported';
+  if(location.protocol==='file:'||(window.isSecureContext===false))return'insecure';
+  if(Notification.permission==='granted')return notifEnabled?'on':'off';
+  if(Notification.permission==='denied')return'blocked';
+  return'ask';
+}
+function notifExplain(st){
+  if(st==='unsupported')return"Ce navigateur ne gère pas les notifications.";
+  if(st==='insecure')return"Les notifications ne fonctionnent pas sur un fichier ouvert en local (file://). Utilise la version en ligne (https) : dlmmradar.github.io/dlmm-radar/";
+  if(st==='blocked')return"Notifications bloquées par le navigateur. Clique sur l'icône 🔒 ou ⚙ à gauche de l'adresse → Notifications → Autoriser, puis recharge la page.";
+  return"";
+}
 function requestNotif(){
-  if(!('Notification'in window)){alert('Notifications non supportées par ce navigateur');return;}
+  const st=notifState();
+  if(st==='unsupported'||st==='insecure'||st==='blocked'){alert(notifExplain(st));updateNotifBtn();return;}
+  if(st==='on'){ // désactiver
+    notifEnabled=false;localStorage.setItem('meme_notif','0');updateNotifBtn();return;
+  }
   Notification.requestPermission().then(p=>{
     notifEnabled=(p==='granted');
     localStorage.setItem('meme_notif',notifEnabled?'1':'0');
     updateNotifBtn();
-    if(notifEnabled)new Notification('Meme Radar',{body:'Notifications activées ✓'});
-  });
+    if(notifEnabled){try{new Notification('Meme Radar',{body:'Notifications activées ✓'});}catch(e){}}
+    else alert(notifExplain(notifState()));
+  }).catch(()=>{updateNotifBtn();});
 }
 function updateNotifBtn(){
   const b=document.getElementById('notifBtn');
   if(!b)return;
-  const granted=('Notification'in window)&&Notification.permission==='granted'&&notifEnabled;
-  b.textContent=granted?'🔔 Notifs ✓':'🔔 Activer notifs';
-  b.style.borderColor=granted?'#16a34a60':'';
-  b.style.color=granted?'#4ade80':'';
+  const st=notifState();
+  const lbl={on:'🔔 Notifs ✓',off:'🔔 Notifs désactivées',ask:'🔔 Activer notifs',blocked:'🔕 Notifs bloquées',insecure:'🔕 Notifs (https requis)',unsupported:'🔕 Non supporté'};
+  b.textContent=lbl[st]||'🔔 Activer notifs';
+  b.style.borderColor=st==='on'?'#16a34a60':(st==='blocked'||st==='insecure')?'#dc262660':'';
+  b.style.color=st==='on'?'#4ade80':(st==='blocked'||st==='insecure')?'#f87171':'';
+  b.title=st==='on'?'Notifications actives — clique pour les désactiver':(notifExplain(st)||'Clique pour activer les notifications du navigateur');
 }
 function notifyAlert(tok){
   if(!notifEnabled||!('Notification'in window)||Notification.permission!=='granted')return;
@@ -2178,7 +2319,53 @@ function importConfig(input){
   rd.readAsText(f);
 }
 // ── Main scan ─────────────────────────────────────────────────────────────────
+
+// ── Indice de viralité (0-100) — traction observable, HORS score de sécurité ──
+// Composantes : croissance followers 𝕏 (30) + trending GeckoTerminal (25)
+// + vélocité holders (25) + accélération volume/acheteurs (20).
+// Pénalité wash trading. Le boost DexScreener (visibilité payée) est affiché
+// à part et n'entre JAMAIS dans l'indice.
+let trendMap={};
+async function fetchTrending(){
+  try{
+    const d=await get('https://api.geckoterminal.com/api/v2/networks/solana/trending_pools?page=1',8000);
+    const map={};
+    (d?.data||[]).forEach((p,i)=>{
+      const id=p?.relationships?.base_token?.data?.id||'';
+      if(id.startsWith('solana_')&&map[id.slice(7)]==null)map[id.slice(7)]=i+1;
+    });
+    if(Object.keys(map).length)trendMap=map;
+  }catch(e){}
+}
+function calcViral(t){
+  const parts={social:0,trend:0,holders:0,volume:0};
+  const hs=(history[t.address]||[]).filter(p=>p.xf!=null&&p.xf>0);
+  if(hs.length>=2){
+    const a=hs[0],b=hs[hs.length-1];
+    const dtH=(b.ts-a.ts)/3600000;
+    if(dtH>=0.15&&a.xf>=50&&b.xf>a.xf){
+      const pctH=((b.xf-a.xf)/a.xf)*100/dtH; // % de croissance par heure
+      parts.social=Math.min(30,Math.round(pctH*1.5)); // 20 %/h → 30 pts
+    }
+  }
+  const rk=trendMap[t.address];
+  if(rk!=null)parts.trend=rk<=5?25:rk<=10?20:15;
+  if(t.hVel!=null&&t.hVel>0)parts.holders=Math.min(25,Math.round(t.hVel*5)); // 5 holders/min → 25 pts
+  let vol=0;
+  if(t.vol24h>0&&t.vol1h>0){
+    const acc=t.vol1h/(t.vol24h/24); // volume 1h vs moyenne horaire 24h
+    if(acc>=1.5)vol+=Math.min(10,Math.round((acc-1)*4));
+  }
+  if(t.buys1h>=100)vol+=Math.min(10,Math.round(t.buys1h/60));
+  parts.volume=Math.min(20,vol);
+  let score=parts.social+parts.trend+parts.holders+parts.volume;
+  if(t.wash==='high')score=Math.max(0,score-15);
+  else if(t.wash==='mid')score=Math.max(0,score-7);
+  return{score:Math.min(100,score),parts};
+}
+
 async function runScan(){
+  fetchTrending();
   scanCycle++;
   setStat('warn','Scan en cours — collecte des sources…');
   try{
@@ -2252,7 +2439,7 @@ async function runScan(){
         if(r.rej==='age')rejAge++;
         else if(r.rej==='mcap')rejMcap++;
         else if(r.rej==='nodata')rejNoData++;
-        else if(r.tok){res.push(r.tok);lastTotals[r.tok.address]=r.tok.total;checkAlert(r.tok,now);checkExitAlert(r.tok,now);}
+        else if(r.tok){res.push(r.tok);lastTotals[r.tok.address]=r.tok.total;checkAlert(r.tok,now);checkExitAlert(r.tok,now);checkSmartNotifs(r.tok,now);}
       }
       // Mise à jour progressive après chaque lot
       tokens=res.sort((a,b)=>b.total-a.total);
@@ -2418,6 +2605,7 @@ function selT(addr){
   if(_tvW){_tvW.innerHTML='';const _tb=document.getElementById('tvBtn');if(_tb)_tb.textContent='📈 Afficher le chart';}
   fillD(t);
   loadMeteoraBlock(t);
+  loadFibBlock(t);
   startDetRefresh();
 }
 function fillD(t){
@@ -2439,6 +2627,15 @@ function fillD(t){
   renderPosition(t);
   document.getElementById('dbo').textContent=t.boostAmt>0?fn(t.boostAmt)+' actif':'Aucun boost';
   document.getElementById('ddl').textContent=t.hasDLMM===true?'✓ DLMM trouvée':t.hasDLMM===false?'✗ Aucun DLMM':'Inconnu';
+  const dvl=document.getElementById('dviral');
+  if(dvl){
+    if(t.viral!=null){
+      const vp=t.viralParts||{};
+      dvl.textContent=t.viral+'/100'+(t.boostAmt>0?' 📢':'');
+      dvl.style.color=t.viral>=60?'#f97316':t.viral>=30?'#fde68a':'#6a80a0';
+      dvl.title='Indice de traction observable — hors score de sécurité. Composantes : social '+(vp.social||0)+' · trending '+(vp.trend||0)+' · holders '+(vp.holders||0)+' · volume '+(vp.volume||0)+(t.boostAmt>0?' · 📢 boost payé actif (non compté)':'');
+    }else{dvl.textContent='—';dvl.title='';dvl.style.color='';}
+  }
   const hv=document.getElementById('dhvel');
   hv.textContent=t.hVel!=null?(t.hVel>0?'+':'')+t.hVel.toFixed(1)+' holders/min':'— (besoin 2 scans)';
   hv.className='v '+(t.hVel>5?'dev-holds':t.hVel<0?'dev-sold':'dev-unk');
@@ -2627,6 +2824,75 @@ function closeD(){sel=null;stopDetRefresh();document.getElementById('dp').classL
 
 
 
+
+// ── Retracement Fibonacci automatique (chandeliers GeckoTerminal, cache 5 min) ──
+const fibCache={};
+async function getFib(t){
+  const mint=t.address;
+  const c=fibCache[mint];
+  if(c&&Date.now()-c.ts<300000)return c.v;
+  let v=null;
+  try{
+    const g=await getGeckoData(mint);
+    const poolAddr=g&&g.poolAddr;
+    if(poolAddr){
+      const agg=(t.age!=null&&t.age<3*3600000)?1:5; // bougies 1 min (<3h) sinon 5 min
+      const d=await get('https://api.geckoterminal.com/api/v2/networks/solana/pools/'+poolAddr+'/ohlcv/minute?aggregate='+agg+'&limit=1000',9000);
+      let list=d?.data?.attributes?.ohlcv_list;
+      if(Array.isArray(list)&&list.length>=8){
+        list=[...list].sort((a,b)=>a[0]-b[0]); // chronologique
+        let athI=0;
+        for(let i=1;i<list.length;i++)if(+list[i][2]>+list[athI][2])athI=i;
+        const high=+list[athI][2];
+        let low=Infinity;
+        for(let i=0;i<=athI;i++)if(+list[i][3]<low&&+list[i][3]>0)low=+list[i][3];
+        // garde-fous : ATH dès la 1re bougie (dump depuis le lancement) ou amplitude <15 %
+        if(athI>0&&isFinite(low)&&high>low&&(high-low)/high>=0.15){
+          const R=[23.6,38.2,50,61.8,78.6];
+          v={high,low,levels:R.map(r=>({r,price:high-(high-low)*r/100}))};
+        }
+      }
+    }
+  }catch(e){}
+  fibCache[mint]={ts:Date.now(),v};
+  return v;
+}
+function fibPct(v,price){
+  if(!v||!price)return null;
+  return Math.max(0,Math.min(150,(v.high-price)/(v.high-v.low)*100));
+}
+async function loadFibBlock(t){
+  const box=document.getElementById('dFib');
+  if(!box)return;
+  if(!box.innerHTML)box.innerHTML='<div style="font-size:10px;color:#4a5d80">Chargement des chandeliers…</div>';
+  box.style.display='';
+  const v=await getFib(t);
+  if(sel!==t.address)return;
+  if(!v){box.innerHTML='';box.style.display='none';return;}
+  const cur=parseFloat(t.priceUsd)||null;
+  const pct=fibPct(v,cur);
+  let near=null;
+  if(pct!=null){
+    let bd=1e9;
+    v.levels.forEach(l=>{const dd=Math.abs(l.r-pct);if(dd<bd){bd=dd;near=l.r;}});
+    if(pct<11.8)near=null; // encore proche de l'ATH, aucun niveau atteint
+  }
+  let synth="";
+  if(pct!=null){
+    const col=pct>=78.6?"#f87171":pct>=50?"#fde68a":"#4ade80";
+    synth="Retracement : <b style=\"color:"+col+"\">"+pct.toFixed(0)+" %</b> depuis l'ATH";
+    if(pct>90)synth+=" — sous le 78,6 % ⚠";
+    else if(near!=null)synth+=" — zone du "+near+" %";
+  }
+  box.innerHTML=
+    '<div style="font-size:10px;font-weight:700;color:#93b8e8;letter-spacing:.4px;margin-bottom:4px">📐 RETRACEMENT FIBONACCI <span style="font-weight:400;color:#4a5d80">(ATH '+fpr(v.high)+' · low '+fpr(v.low)+')</span></div>'+
+    (synth?'<div style="font-size:10px;color:#c9d8f0;margin-bottom:5px">'+synth+'</div>':'')+
+    '<div style="display:flex;flex-wrap:wrap;gap:3px 12px;font-size:10px">'+
+    v.levels.map(function(l){const isN=near===l.r;return '<span style="'+(isN?'color:#fde68a;font-weight:700':'color:#6a80a0')+'">'+l.r+'% '+fpr(l.price)+(isN?' ◄':'')+'</span>';}).join('')+
+    '</div>'+
+    '<div style="font-size:9px;color:#4a5d80;margin-top:4px">Niveaux conventionnels calculés sur les chandeliers du pool (low → ATH) — une convention de marché, pas une prédiction.</div>';
+}
+
 // ── Enrichissement pool DLMM via l'API Meteora (détail uniquement, cache 5 min) ──
 const meteoCache={};
 async function getMeteoraDLMM(mint){
@@ -2705,7 +2971,7 @@ async function refreshDet(manual){
           if(pair.pairCreatedAt)t.age=Date.now()-pair.pairCreatedAt;
         }
       }
-      if(sel===t.address)fillD(t);
+      if(sel===t.address){fillD(t);loadFibBlock(t);}
       const inf=document.getElementById('dRefreshInfo');
       if(inf)inf.textContent='maj '+new Date().toLocaleTimeString();
     }
@@ -3168,6 +3434,20 @@ var I18N_X={
 // — divers —
 "Prix d'achat invalide":"Invalid buy price","abonnés":"followers","vendeurs":"sellers","vendeurs (1h)":"sellers (1h)",
 "📡 À propos":"📡 About",
+"Notifs :":"Notifs:","🚀 Décollage":"🚀 Takeoff","📈 Trending":"📈 Trending","🟡 DLMM":"🟡 DLMM",
+"📐 Fib":"📐 Fib","⏰ Réveil":"⏰ Wake-up","max/h":"max/h","Plafond par heure":"Cap per hour",
+"Catégories de notifications":"Notification categories",
+"Bond de viralité sur un token au score correct":"Virality jump on a token with a decent score",
+"Entrée dans le trending GeckoTerminal":"Entering GeckoTerminal trending",
+"Pool DLMM rémunérateur (fee/TVL 24h ≥ 5 %) sur un token propre":"Rewarding DLMM pool (24h fee/TVL ≥ 5%) on a clean token",
+"Tokens épinglés : prix entrant en zone 50–61,8 % de retracement":"Pinned tokens: price entering the 50–61.8% retracement zone",
+"Token > 6h dont le volume horaire explose sa moyenne":"Token > 6h whose hourly volume spikes above its average",
+"Plafond de notifications par heure — au-delà, les déclenchements sont journalisés sans notification":"Hourly notification cap — beyond it, triggers are logged without notifying",
+"Chargement des chandeliers…":"Loading candles…",
+"📐 RETRACEMENT FIBONACCI":"📐 FIBONACCI RETRACEMENT",
+"Retracement :":"Retracement:",
+"Niveaux conventionnels calculés sur les chandeliers du pool (low → ATH) — une convention de marché, pas une prédiction.":"Conventional levels computed from the pool's candles (low → ATH) — a market convention, not a prediction.",
+"🔥 Viralité":"🔥 Virality",
 "Chargement du pool Meteora…":"Loading Meteora pool…",
 "Ouvrir dans Meteora ↗":"Open in Meteora ↗",
 "🟡 POOL DLMM METEORA":"🟡 METEORA DLMM POOL",
@@ -3179,6 +3459,15 @@ var I18N_X={
 };
 var I18N_RX=[
 [/^(\d+)\s+alertes?$/,"$1 alerts"],
+[/^🚀 (.+) décolle — viralité (\d+)\/100$/,"🚀 $1 taking off — virality $2/100"],
+[/^📈 (.+) entre au trending #(\d+)$/,"📈 $1 entered trending #$2"],
+[/^⏰ (.+) se réveille — volume ×([\d.]+)$/,"⏰ $1 waking up — volume ×$2"],
+[/^📐 (.+) en zone 50–61,8 %$/,"📐 $1 in the 50–61.8% zone"],
+[/depuis l'ATH/,"from ATH"],
+[/— zone du ([\d.]+) %/,"— $1 % zone"],
+[/— sous le 78,6 % ⚠/,"— below 78.6 % ⚠"],
+[/Indice de traction observable — hors score de sécurité\. Composantes : social/,"Observable traction index — separate from the safety score. Components: social"],
+[/📢 boost payé actif \(non compté\)/,"📢 paid boost active (not counted)"],
 [/\((\d+) pools — meilleure TVL\)/,"($1 pools — best TVL)"],
 [/\(1h : /,"(1h: "],
 [/^maj (.+)$/,"upd $1"],
