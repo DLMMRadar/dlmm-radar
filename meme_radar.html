@@ -36,11 +36,12 @@ select{font-family:'Courier New',monospace;font-size:11px;padding:3px 6px;border
 .tab.on{color:#c9d8f0;border-bottom-color:#7ee8a2}
 /* Layout */
 .main{display:flex;flex:1;overflow:hidden;min-height:0}
-.panel{flex:1;overflow:auto;min-height:0}
+.panel{flex:1;overflow-y:scroll;overflow-x:auto;min-height:0;scrollbar-gutter:stable}/* barre verticale toujours réservée : évite la boucle apparition/disparition qui faisait osciller les colonnes */
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:#2a3f60;text-align:center;padding:20px}
 .empty i{font-size:36px}
 /* Table */
-table{width:100%;border-collapse:collapse;min-width:800px}
+table{width:100%;border-collapse:collapse;min-width:1060px;table-layout:fixed}
+th,td{overflow:hidden;text-overflow:ellipsis}
 th{padding:5px 8px;text-align:left;font-size:9px;font-weight:600;color:#7a90b0;border-bottom:1px solid #131e30;white-space:nowrap;position:sticky;top:0;background:#0e1628;text-transform:uppercase;letter-spacing:.5px;z-index:1}
 td{padding:5px 8px;border-bottom:1px solid #0d1420;vertical-align:middle;white-space:nowrap;font-size:11px;color:#a8bcd8}
 tr{cursor:pointer}tr:hover td{background:#111d30}tr.sel td{background:#142040}
@@ -350,6 +351,7 @@ th.sortable span{font-size:9px;color:#4ade80;margin-left:2px}
       <span id="emTxt" style="color:#2d3f5e">Détection…</span>
     </div>
     <table id="tbl" style="display:none">
+      <colgroup><col style="width:15%"><col style="width:5%"><col style="width:3.5%"><col style="width:6.5%"><col style="width:6.5%"><col style="width:4%"><col style="width:5.5%"><col style="width:5%"><col style="width:3.5%"><col style="width:6.5%"><col style="width:4.5%"><col style="width:5%"><col style="width:5%"><col style="width:6.5%"><col style="width:5%"><col style="width:7.5%"><col style="width:5.5%"><col style="width:42px"></colgroup>
       <thead>
         <tr>
           <th style="color:#c9d8f0">Token</th>
@@ -940,7 +942,7 @@ function renderWatch(){
       <td style="color:#fb923c">${fn(t.volAll)}</td>
       <td class="${hc(t.top10pct)}">${t.top10pct!=null?t.top10pct+'%':'—'}</td>
       <td class="${t.holderCount==null?'':t.holderCount>=minHolders?'hld-ok':'hld-low'}" title="${t.holderFloor?'Comptage plafonné pour économiser le quota Helius — valeur réelle ≥ affichée':''}">${t.holderFloor?'≥':''}${fmtH(t.holderCount)}</td>
-      <td>${t.risk!=null?`<span class="risk-badge ${t.risk>=60?'risk-hi':t.risk>=30?'risk-mid':'risk-lo'}" title="${(t.riskReasons||[]).join(', ')}">${t.risk}</span>`:'—'}${t.dump?'<span style="color:#f87171">⚠</span>':''}${t.wash==='high'?'<span title="Wash trading">🌀</span>':''}${t.viral>=60?`<span title="Viralité ${t.viral}/100">🔥</span>`:''}${t.jupSus?'<span title="Suspect Jupiter">⛔</span>':''}${t.ticker&&t.ticker.recycled?'<span title="Ticker recyclé">♻️</span>':''}</td>
+      <td>${t.risk!=null?`<span class="risk-badge ${t.risk>=60?'risk-hi':t.risk>=30?'risk-mid':'risk-lo'}" title="${(t.riskReasons||[]).join(', ')}">${t.risk}</span>`:'—'}${t.dump?'<span style="color:#f87171">⚠</span>':''}<span style="display:inline-block;width:15px">${t.wash==='high'?'<span title="Wash trading">🌀</span>':''}</span><span style="display:inline-block;width:15px">${t.viral>=60?`<span title="Viralité ${t.viral}/100">🔥</span>`:''}</span>${t.jupSus?'<span title="Suspect Jupiter">⛔</span>':''}${t.ticker&&t.ticker.recycled?'<span title="Ticker recyclé">♻️</span>':''}</td>
       <td><div class="dots">${CR.map(c=>{const v=t.scores[c.id];const off=!activeCrit.has(c.id);return`<div class="d ${off?'du':v===true?'dy':v===false?'dn2':'du'}" title="${c.lbl}" style="${off?'opacity:.25':''}">${off?'—':v===true?'✓':v===false?'✗':'·'}</div>`}).join('')}</div></td>
       <td><span class="pill ${pc(t.total)}">${t.total}/${maxScore()}</span>${trajArrow(t)}</td>
       <td onclick="event.stopPropagation()">
