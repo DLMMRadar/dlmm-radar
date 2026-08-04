@@ -43,6 +43,8 @@ On top of the score, a **risk index** aggregates penalties, plus:
 - ⛔ **Security cross-check** — transfer fees, hooks, mutable balances (GoPlus vs. RugCheck divergences)
 - ♻️ **Recycled ticker detection**
 - 🟡 **Meteora DLMM pool metrics** — bin step, base fee, TVL, and the 24h **fee/TVL ratio** straight from Meteora's official API, so you know whether the pool actually pays LPs before you open it
+- 🔥 **Virality index (0–100)** — X follower growth, GeckoTerminal trending rank, holder velocity and volume acceleration, combined into one number. Deliberately **kept out of the safety score**: the 12 checks tell you if a token is clean, the flame tells you if it's hot. A viral token can still be a trap.
+- 📐 **Automatic Fibonacci retracement** — swing low → ATH computed from the pool's own candles, with the 23.6 / 38.2 / 50 / 61.8 / 78.6 levels and where the price sits right now. A market convention, not a prediction.
 - 𝕏 **Social signals** — account link, mentions, community size (informational only)
 - Organic score & suspicious-audit flag from Jupiter
 
@@ -61,7 +63,23 @@ All free public endpoints. The only key you need is a **free Helius API key** (u
 
 Interface is available in **English and French** (🌐 toggle next to the config buttons).
 
-<img src="screenshots/mobile.png" alt="Meme Radar — mobile" width="320">
+### Filters & alerts
+
+Age filters work as a **range** — set a minimum and a maximum to scan a specific window (6–12h, 12–24h…), not just "everything under 24h".
+
+Five optional notification triggers, all off by default except the first:
+
+| Trigger | Fires when |
+|---|---|
+| 🚀 Takeoff | Virality jumps sharply on a token that passes your score |
+| 📈 Trending | Token enters GeckoTerminal's trending list |
+| 🟡 DLMM | Pool pays ≥ 5%/day (24h fee/TVL) on a clean token |
+| 📐 Fib | Pinned token enters the 50–61.8% retracement zone |
+| ⏰ Wake-up | Token older than 6h sees its hourly volume spike |
+
+Anti-spam is built in: one notification per token per category, a 30-minute quiet period per token, and an hourly cap (default 5). Past the cap, triggers are still logged in the Alerts tab — you lose the noise, never the information.
+
+<img src="screenshots/mobile.jpg" alt="Meme Radar — mobile" width="320">
 
 Your settings, flagged-dev list and KOL list persist locally in your browser (localStorage). Export/import them as JSON from the settings panel.
 
@@ -97,6 +115,8 @@ Ce n'est **pas un outil miracle** : c'est un outil parmi d'autres. Il ne trouver
 **Essai en ligne, sans installation :** [version ordinateur](https://dlmmradar.github.io/dlmm-radar/meme_radar.html) · [version mobile](https://dlmmradar.github.io/dlmm-radar/meme_radar_mobile.html)
 
 **Ou en local :** téléchargez `meme_radar.html` (ordinateur) ou `meme_radar_mobile.html` (mobile) et ouvrez-le dans Chrome. Dans les deux cas, collez votre clé Helius gratuite ([helius.dev](https://helius.dev)) dans les réglages. L'interface est disponible en français et en anglais (bouton 🌐 FR/EN).
+
+S'ajoutent un **indice de viralité 0–100** (croissance des abonnés 𝕏, trending GeckoTerminal, vélocité holders, accélération du volume — volontairement séparé du score de sécurité), un **retracement Fibonacci automatique** calculé sur les chandeliers du pool, les **métriques du pool DLMM Meteora** (bin step, base fee, TVL, ratio fees/TVL 24h), des **tranches d'âge** configurables (6–12h, 12–24h…) et **cinq types de notifications** avec plafond horaire anti-saturation.
 
 Les 12 critères couvrent : autorités mint/freeze révoquées, LP verrouillée, détection de bundles, nombre et croissance des holders réels, concentration du top 10, part des snipers/insiders, présence d'un pool DLMM, âge et comportement du wallet du dev, deployers en série fichés, détection des tokens « tribute ». S'y ajoutent un indice de risque, une heuristique de wash trading, un croisement de sécurité GoPlus/RugCheck, la détection de tickers recyclés et des signaux sociaux 𝕏.
 

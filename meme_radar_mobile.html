@@ -310,6 +310,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
         <a href="https://github.com/DLMMRadar/dlmm-radar" target="_blank" style="color:#a78bfa;text-decoration:none;font-size:12px">GitHub ↗</a>
       </div>
       <p style="font-size:10px;color:#6a80a0;line-height:1.5;margin-top:6px">Dons SOL : <span style="font-family:monospace;color:#c9d8f0;word-break:break-all" onclick="copyAddr('Em5aKcZ6VvmFnYmAcUDCodkoiBokGGSYabhFRwh9rb3A',this)">Em5aKcZ6VvmFnYmAcUDCodkoiBokGGSYabhFRwh9rb3A 📋</span></p>
+      <p style="font-size:9px;color:#2f3d5c;margin-top:4px">build-2026-08-04c</p>
       <p style="font-size:10px;color:#6a80a0;line-height:1.5;margin-top:4px">Pas un conseil financier — l'outil trie, vous décidez.</p>
     </div>
     <div class="set-card">
@@ -735,13 +736,27 @@ function setEnv(e){
 }
 
 // ── Fetch helpers ─────────────────────────────────────────────────────────────
+let _proxyPause=0;        // timestamp jusqu'auquel on n'utilise plus le proxy (après un 429)
+const _hostPause={};      // pauses par domaine après un 429 direct
+function _host(u){try{return new URL(u).host;}catch(e){return u;}}
 async function get(url,ms=7000){
-  // cache:'no-store' : jamais de réponse HTTP mise en cache par le navigateur
-  try{const r=await fetch(url,{signal:AbortSignal.timeout(ms),cache:'no-store'});if(r.ok)return r.json();}catch{}
-  // Fallback proxy CORS : corsproxy.io sert des copies en cache → cache-busting
-  // via un paramètre horodaté dans l'URL cible (ignoré par les APIs)
-  try{const bust=url+(url.includes('?')?'&':'?')+'_ts='+Date.now();
-    const r=await fetch('https://corsproxy.io/?'+encodeURIComponent(bust),{signal:AbortSignal.timeout(ms+4000),cache:'no-store'});if(r.ok)return r.json();}catch{}
+  const h=_host(url), now=Date.now();
+  if(_hostPause[h]&&now<_hostPause[h])return null; // domaine en quarantaine
+  try{
+    const r=await fetch(url,{signal:AbortSignal.timeout(ms),cache:'no-store'});
+    if(r.ok)return r.json();
+    if(r.status===429){_hostPause[h]=Date.now()+120000;return null;} // 2 min de pause
+    if(r.status===404||r.status===400)return null;                   // inutile d'insister
+  }catch{}
+  // Repli proxy CORS — désactivé temporairement s'il nous a déjà renvoyé un 429.
+  // (Pas de cache-busting ici : il générait une requête unique à chaque appel,
+  //  ce qui saturait le proxy et déclenchait précisément ces 429.)
+  if(Date.now()<_proxyPause)return null;
+  try{
+    const r=await fetch('https://corsproxy.io/?'+encodeURIComponent(url),{signal:AbortSignal.timeout(ms+4000)});
+    if(r.ok)return r.json();
+    if(r.status===429){_proxyPause=Date.now()+300000;} // 5 min sans proxy
+  }catch{}
   return null;
 }
 // DexScreener token profiles — source principale (CORS OK)
