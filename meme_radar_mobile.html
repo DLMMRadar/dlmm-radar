@@ -310,7 +310,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
         <a href="https://github.com/DLMMRadar/dlmm-radar" target="_blank" style="color:#a78bfa;text-decoration:none;font-size:12px">GitHub ↗</a>
       </div>
       <p style="font-size:10px;color:#6a80a0;line-height:1.5;margin-top:6px">Dons SOL : <span style="font-family:monospace;color:#c9d8f0;word-break:break-all" onclick="copyAddr('Em5aKcZ6VvmFnYmAcUDCodkoiBokGGSYabhFRwh9rb3A',this)">Em5aKcZ6VvmFnYmAcUDCodkoiBokGGSYabhFRwh9rb3A 📋</span></p>
-      <p style="font-size:9px;color:#2f3d5c;margin-top:4px">build-2026-08-04c</p>
+      <p style="font-size:9px;color:#2f3d5c;margin-top:4px">build-2026-08-05a</p>
       <p style="font-size:10px;color:#6a80a0;line-height:1.5;margin-top:4px">Pas un conseil financier — l'outil trie, vous décidez.</p>
     </div>
     <div class="set-card">
@@ -1697,6 +1697,19 @@ function checkAlert(tok,now){
 }
 
 
+
+// Ouvre la fiche du token depuis une notification (bascule sur l'onglet Live)
+function notifOpen(addr,n){
+  try{window.focus();}catch(e){}
+  try{
+    const t=tokens.find(x=>x.address===addr)||alerts.find(x=>x.address===addr);
+    if(t){if(typeof msw==='function'&&curTab!=='live')msw('live');
+      if(sel===addr)sel=null;
+      setTimeout(()=>{try{selT(addr);}catch(e){}},60);}
+  }catch(e){}
+  if(n)try{n.close();}catch(e){}
+}
+
 // ── Notifications intelligentes (5 catégories, anti-saturation) ───────────────
 // Garde-fous : 1 notif par token et par catégorie (réarmée si le signal
 // disparaît), délai de calme de 30 min par token, plafond horaire global.
@@ -1727,7 +1740,7 @@ function fireNotif(tok,cat,title,body){
   if(!notifQuota())return; // plafond atteint : journalisé, pas notifié
   notifTimes.push(now);
   if(!notifEnabled||!('Notification'in window)||Notification.permission!=='granted')return;
-  try{const n=new Notification(title,{body,tag:cat+'-'+tok.address});n.onclick=()=>{window.focus();n.close();};}catch(e){}
+  try{const n=new Notification(title,{body,tag:cat+'-'+tok.address,requireInteraction:true});n.onclick=()=>notifOpen(tok.address,n);}catch(e){}
 }
 function disarmNotif(tok,cat){delete notifFired[cat+':'+tok.address];}
 async function checkSmartNotifs(tok,now){
@@ -1813,8 +1826,8 @@ function checkExitAlert(tok,now){
     saveAlerts();renderAlerts();upd();
     if(notifEnabled&&('Notification'in window)&&Notification.permission==='granted'){
       try{
-        const n=new Notification(`⚠️ SORTIE — ${tok.symbol}`,{body:`Dump détecté · Chg1h ${fp(tok.chg1h)}`,tag:'exit-'+tok.address});
-        n.onclick=()=>{window.focus();n.close();};
+        const n=new Notification(`⚠️ SORTIE — ${tok.symbol}`,{body:`Dump détecté · Chg1h ${fp(tok.chg1h)}`,tag:'exit-'+tok.address,requireInteraction:true});
+        n.onclick=()=>notifOpen(tok.address,n);
       }catch{}
     }
   }
@@ -1864,9 +1877,9 @@ function notifyAlert(tok){
   try{
     const n=new Notification(`🚨 ${tok.symbol} — ${tok.total}/${maxScore()}`,{
       body:`MCap ${fn(tok.mcap)} · Liq ${fn(tok.liquidity)}${tok.hasDLMM===true?' · DLMM✓':''}${tok.risk!=null?' · Risque '+tok.risk:''}`,
-      tag:tok.address,
+      tag:tok.address,requireInteraction:true,
     });
-    n.onclick=()=>{window.focus();n.close();};
+    n.onclick=()=>notifOpen(tok.address,n);
   }catch{}
 }
 

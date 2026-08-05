@@ -577,7 +577,7 @@ th.sortable span{font-size:9px;color:#4ade80;margin-left:2px}
   <a href="https://x.com/DLMMRadar" target="_blank" style="color:#7ab8f5;text-decoration:none">𝕏 @DLMMRadar</a>
   <a href="https://github.com/DLMMRadar/dlmm-radar" target="_blank" style="color:#a78bfa;text-decoration:none">GitHub ↗</a>
   <span>Dons SOL : <span style="font-family:'Courier New',monospace;color:#c9d8f0;cursor:pointer" onclick="copyAddr('Em5aKcZ6VvmFnYmAcUDCodkoiBokGGSYabhFRwh9rb3A',this)" title="Cliquer pour copier l'adresse complète">Em5aK…9rb3A 📋</span></span>
-  <span style="color:#2f3d5c">build-2026-08-04c</span>
+  <span style="color:#2f3d5c">build-2026-08-05a</span>
   <span style="margin-left:auto">Pas un conseil financier — l'outil trie, vous décidez.</span>
 </div>
 
@@ -2046,6 +2046,20 @@ function checkAlert(tok,now){
 }
 
 
+
+// Ouvre la fiche du token depuis une notification (et garde la notif à l'écran
+// jusqu'à ce que l'utilisateur agisse — requireInteraction).
+function notifOpen(addr,n){
+  try{window.focus();}catch(e){}
+  try{
+    const t=tokens.find(x=>x.address===addr)||alerts.find(x=>x.address===addr);
+    if(t){if(sel===addr)sel=null;selT(addr);
+      const row=document.querySelector('#tb tr[data-a="'+addr+'"]');
+      if(row&&row.scrollIntoView)row.scrollIntoView({block:'center'});}
+  }catch(e){}
+  if(n)try{n.close();}catch(e){}
+}
+
 // ── Notifications intelligentes (5 catégories, anti-saturation) ───────────────
 // Garde-fous : 1 notif par token et par catégorie (réarmée si le signal
 // disparaît), délai de calme de 30 min par token, plafond horaire global.
@@ -2076,7 +2090,7 @@ function fireNotif(tok,cat,title,body){
   if(!notifQuota())return; // plafond atteint : journalisé, pas notifié
   notifTimes.push(now);
   if(!notifEnabled||!('Notification'in window)||Notification.permission!=='granted')return;
-  try{const n=new Notification(title,{body,tag:cat+'-'+tok.address});n.onclick=()=>{window.focus();n.close();};}catch(e){}
+  try{const n=new Notification(title,{body,tag:cat+'-'+tok.address,requireInteraction:true});n.onclick=()=>notifOpen(tok.address,n);}catch(e){}
 }
 function disarmNotif(tok,cat){delete notifFired[cat+':'+tok.address];}
 async function checkSmartNotifs(tok,now){
@@ -2164,8 +2178,8 @@ function checkExitAlert(tok,now){
     if(notifEnabled&&('Notification'in window)&&Notification.permission==='granted'){
       try{
         const n=new Notification(`⚠️ SORTIE — ${tok.symbol}`,{
-          body:`Dump détecté · Chg1h ${fp(tok.chg1h)} · Sells>${'>'}Buys`,tag:'exit-'+tok.address});
-        n.onclick=()=>{window.focus();n.close();};
+          body:`Dump détecté · Chg1h ${fp(tok.chg1h)} · Sells>${'>'}Buys`,tag:'exit-'+tok.address,requireInteraction:true});
+        n.onclick=()=>notifOpen(tok.address,n);
       }catch{}
     }
   }
@@ -2218,9 +2232,9 @@ function notifyAlert(tok){
   try{
     const n=new Notification(`🚨 ${tok.symbol} — Score ${tok.total}/${maxScore()}`,{
       body:`MCap ${fn(tok.mcap)} · Liq ${fn(tok.liquidity)}${tok.hasDLMM===true?' · DLMM✓':''}${tok.risk!=null?' · Risque '+tok.risk:''}`,
-      tag:tok.address,
+      tag:tok.address,requireInteraction:true,
     });
-    n.onclick=()=>{window.focus();n.close();};
+    n.onclick=()=>notifOpen(tok.address,n);
   }catch{}
 }
 
