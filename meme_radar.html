@@ -452,6 +452,7 @@ th.sortable span{font-size:9px;color:#4ade80;margin-left:2px}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
         <div style="display:flex;gap:6px">
+          <button class="xb" id="dCardBtn" title="Exporter une carte PNG partageable (pour X)" onclick="exportCard()" style="font-size:13px">🖼</button>
           <button class="xb" id="dMaxBtn" title="Agrandir le panneau (tout voir sans défiler)" onclick="toggleDetMax()" style="font-size:13px">⛶</button>
           <button class="xb" id="dRefreshBtn" title="Rafraîchir les données maintenant (auto toutes les 15 s)" onclick="refreshDet(true)" style="font-size:13px">🔄</button>
           <button class="xb" onclick="closeD()">×</button>
@@ -588,7 +589,7 @@ th.sortable span{font-size:9px;color:#4ade80;margin-left:2px}
   <a href="https://x.com/DLMMRadar" target="_blank" style="color:#7ab8f5;text-decoration:none">𝕏 @DLMMRadar</a>
   <a href="https://github.com/DLMMRadar/dlmm-radar" target="_blank" style="color:#a78bfa;text-decoration:none">GitHub ↗</a>
   <span>Dons SOL : <span style="font-family:'Courier New',monospace;color:#c9d8f0;cursor:pointer" onclick="copyAddr('Em5aKcZ6VvmFnYmAcUDCodkoiBokGGSYabhFRwh9rb3A',this)" title="Cliquer pour copier l'adresse complète">Em5aK…9rb3A 📋</span></span>
-  <span style="color:#2f3d5c">build-2026-08-05c</span>
+  <span style="color:#2f3d5c">build-2026-08-05d</span>
   <span style="margin-left:auto">Pas un conseil financier — l'outil trie, vous décidez.</span>
 </div>
 
@@ -3000,6 +3001,151 @@ async function loadFibBlock(t){
     '<div style="font-size:9px;color:#4a5d80;margin-top:4px">Niveaux conventionnels calculés sur les chandeliers du pool (low → ATH) — une convention de marché, pas une prédiction.</div>';
 }
 
+
+// ── Export d'une carte PNG partageable (canvas, 100 % local) ─────────────────
+function fmtCard(n){
+  if(n==null||!isFinite(n))return'—';
+  return n>=1e9?'$'+(n/1e9).toFixed(2)+'B':n>=1e6?'$'+(n/1e6).toFixed(2)+'M':
+         n>=1e3?'$'+(n/1e3).toFixed(1)+'K':'$'+(+n).toFixed(0);
+}
+function cardAge(ms){
+  if(ms==null)return'—';
+  const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);
+  return h>0?h+'h '+m+'m':m+'m';
+}
+function exportCard(){
+  const t=tokens.find(x=>x.address===sel)||alerts.find(x=>x.address===sel)||window._manualTok;
+  if(!t)return;
+  const W=1200,H=675,S=2; // rendu ×2 pour un PNG net
+  const cv=document.createElement('canvas');cv.width=W*S;cv.height=H*S;
+  const c=cv.getContext('2d');c.scale(S,S);
+  const VIO='#9945FF',GRN='#14F195',TXT='#F2F4FF',DIM='#8894b8',LINE='#243050';
+
+  // fond
+  const g=c.createRadialGradient(W*0.3,H*0.35,50,W*0.5,H*0.5,W*0.8);
+  g.addColorStop(0,'#141A33');g.addColorStop(0.6,'#0C0F1E');g.addColorStop(1,'#070910');
+  c.fillStyle=g;c.fillRect(0,0,W,H);
+  // anneaux radar discrets
+  c.strokeStyle='#2A3455';c.globalAlpha=.5;
+  [340,240,150].forEach((r,i)=>{c.lineWidth=i?1:1.5;c.beginPath();c.arc(150,120,r,0,7);c.stroke();});
+  c.globalAlpha=1;
+
+  const F=(s,w,f)=>c.font=(w||'')+' '+s+'px '+(f||'system-ui,Segoe UI,Roboto,sans-serif');
+  const txt=(s,x,y,col,size,weight,font)=>{F(size,weight,font);c.fillStyle=col;c.fillText(s,x,y);};
+
+  // en-tête
+  txt((t.symbol||'').slice(0,14).toUpperCase(),50,86,TXT,54,'bold');
+  txt((t.name||'').slice(0,40),50,116,DIM,19,'');
+  const now=new Date();
+  txt(now.toISOString().slice(0,10)+'  '+now.toTimeString().slice(0,5)+' UTC'.replace('UTC',''),
+      50,144,'#5a6a90',15,'','ui-monospace,Courier New,monospace');
+
+  // pastille de score
+  const sc=t.total,mx=maxScore();
+  const ok=sc/mx>=.83?GRN:sc/mx>=.66?'#fde68a':'#f87171';
+  c.strokeStyle=ok;c.lineWidth=4;c.beginPath();c.arc(1065,105,66,0,7);c.stroke();
+  c.textAlign='center';
+  txt(sc+'/'+mx,1065,116,ok,44,'bold');
+  txt('CHECKS',1065,142,DIM,13,'bold');
+  c.textAlign='left';
+
+  // bandeau de métriques
+  const rows=[
+    ['MARKET CAP',fmtCard(t.mcap)],['LIQUIDITY',fmtCard(t.liquidity)],
+    ['MCAP / LIQ',t.mcap&&t.liquidity?(t.mcap/t.liquidity).toFixed(2)+'x':'—'],
+    ['AGE',cardAge(t.age)],['VOL 24H',fmtCard(t.vol24h)],
+    ['HOLDERS',t.holderCount!=null?(t.holderFloor?'≥':'')+t.holderCount.toLocaleString('en-US'):'—'],
+    ['TOP 10',t.top10pct!=null?t.top10pct+'%':'—'],
+    ['RISK',t.risk!=null?t.risk+'/100':'—'],
+    ['PRICE',t.priceUsd?fpr(t.priceUsd):'—'],
+    ['CHG 24H',t.chg24h!=null?(t.chg24h>0?'+':'')+(+t.chg24h).toFixed(1)+'%':'—'],
+    ['VIRALITY',t.viral!=null?t.viral+'/100':'—'],
+    ['SNIPERS',t.sniperPct!=null?t.sniperPct+'%':'—']
+  ];
+  let x=50,y=196;
+  rows.forEach((r,i)=>{
+    const col=i%4,row=Math.floor(i/4);
+    const cx=50+col*280,cy=196+row*88;
+    c.fillStyle='#111A2E';c.strokeStyle=LINE;c.lineWidth=1;
+    c.beginPath();c.roundRect(cx,cy,262,70,10);c.fill();c.stroke();
+    txt(r[0],cx+14,cy+24,DIM,12,'bold');
+    let vc=TXT;
+    if(r[0]==='RISK'&&t.risk!=null)vc=t.risk>=60?'#f87171':t.risk>=30?'#fde68a':GRN;
+    if(r[0]==='TOP 10'&&t.top10pct!=null)vc=t.top10pct>=30?'#fde68a':GRN;
+    if(r[0]==='CHG 24H'&&t.chg24h!=null)vc=t.chg24h>=0?GRN:'#f87171';
+    if(r[0]==='VIRALITY'&&t.viral!=null)vc=t.viral>=60?'#f97316':t.viral>=30?'#fde68a':DIM;
+    txt(r[1],cx+14,cy+54,vc,26,'bold','ui-monospace,Courier New,monospace');
+  });
+
+  // bloc pool DLMM si connu
+  const mp=(meteoCache[t.address]||{}).v;
+  let by=458;
+  if(mp){
+    c.fillStyle='#92400E18';c.strokeStyle='#92400E70';c.lineWidth=1.5;
+    c.beginPath();c.roundRect(50,by,1100,74,10);c.fill();c.stroke();
+    txt('METEORA DLMM POOL',68,by+26,'#fde68a',13,'bold');
+    const cells=[['BIN STEP',mp.binStep??'—'],['BASE FEE',mp.baseFee!=null?(+mp.baseFee).toFixed(2)+'%':'—'],
+      ['TVL',fmtCard(mp.tvl)],['FEES 24H',fmtCard(mp.fees24h)],
+      ['FEE/TVL 24H',mp.feeTvl24h!=null?(+mp.feeTvl24h).toFixed(2)+'%':'—']];
+    cells.forEach((cc,i)=>{
+      const cx=68+i*218;
+      txt(cc[0],cx,by+48,DIM,11,'bold');
+      const hot=cc[0]==='FEE/TVL 24H'&&mp.feeTvl24h>=5;
+      txt(String(cc[1]),cx,by+68,hot?GRN:TXT,20,'bold','ui-monospace,Courier New,monospace');
+    });
+    by+=86;
+  }
+
+  // drapeaux
+  const flags=[];
+  if(t.viral>=60)flags.push(['VIRALITY '+t.viral+'/100',GRN]);
+  if(t.hasDLMM===true)flags.push(['DLMM POOL',  '#fde68a']);
+  if(t.wash==='high')flags.push(['WASH TRADING SUSPECTED','#f87171']);
+  if(t.riskyDev)flags.push(['FLAGGED DEV','#f87171']);
+  if(t.tributeKol)flags.push(['TRIBUTE TOKEN','#f87171']);
+  if(t.ticker&&t.ticker.recycled)flags.push(['RECYCLED TICKER','#f87171']);
+  if(t.jupSus)flags.push(['FLAGGED BY JUPITER','#f87171']);
+  let fx=50;
+  flags.slice(0,5).forEach(f=>{
+    F(14,'bold');const w=c.measureText(f[0]).width+28;
+    if(fx+w>1150)return;
+    c.strokeStyle=f[1];c.globalAlpha=.9;c.lineWidth=1.5;
+    c.fillStyle=f[1]+'18';
+    c.beginPath();c.roundRect(fx,by,w,32,16);c.fill();c.stroke();c.globalAlpha=1;
+    txt(f[0],fx+14,by+22,f[1],14,'bold');
+    fx+=w+10;
+  });
+
+  // critères échoués — transparence assumée
+  try{
+    const failed=CR.filter(cr=>activeCrit.has(cr.id)&&t.scores&&t.scores[cr.id]===false)
+                   .map(cr=>cr.lbl).slice(0,3);
+    if(failed.length){
+      const fy=by+52;
+      txt('FAILED:',50,fy,'#f87171',13,'bold');
+      txt(failed.join('  ·  ').slice(0,110),112,fy,DIM,13,'');
+    }
+  }catch(e){}
+
+  // pied de page
+  c.strokeStyle=LINE;c.lineWidth=1;c.beginPath();c.moveTo(50,H-62);c.lineTo(1150,H-62);c.stroke();
+  txt('MEME RADAR',50,H-34,GRN,19,'bold');
+  txt('— DLMM EDITION',206,H-34,'#fde68a',15,'bold');
+  txt('@DLMMRadar  ·  github.com/DLMMRadar/dlmm-radar',50,H-13,'#5a6a90',14,'','ui-monospace,Courier New,monospace');
+  c.textAlign='right';
+  txt('Not financial advice — the tool sorts, you decide.',1150,H-22,'#5a6a90',14,'');
+  c.textAlign='left';
+
+  cv.toBlob(function(b){
+    if(!b)return;
+    const url=URL.createObjectURL(b);
+    const a=document.createElement('a');
+    a.href=url;a.download=(t.symbol||'token').replace(/[^A-Za-z0-9_-]/g,'')+'-memeradar.png';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+  },'image/png');
+}
+
 // ── Enrichissement pool DLMM via l'API Meteora (détail uniquement, cache 5 min) ──
 const meteoCache={};
 async function getMeteoraDLMM(mint){
@@ -3541,6 +3687,7 @@ var I18N_X={
 // — divers —
 "Prix d'achat invalide":"Invalid buy price","abonnés":"followers","vendeurs":"sellers","vendeurs (1h)":"sellers (1h)",
 "📡 À propos":"📡 About",
+"Exporter une carte PNG partageable (pour X)":"Export a shareable PNG card (for X)","Exporter une carte PNG partageable":"Export a shareable PNG card",
 "Agrandir le panneau (tout voir sans défiler)":"Expand panel (see everything without scrolling)","Réduire le panneau":"Shrink panel",
 "🫧 Bubblemaps":"🫧 Bubblemaps","Bubblemaps — clusters de wallets liés":"Bubblemaps — linked wallet clusters",
 "🔥 Pools chauds":"🔥 Hot pools","🔥 Pools chauds ✓":"🔥 Hot pools ✓","🔥 Source pools chauds":"🔥 Hot pools source",
