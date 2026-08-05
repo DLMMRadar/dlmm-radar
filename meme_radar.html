@@ -97,20 +97,24 @@ tr{cursor:pointer}tr:hover td{background:#111d30}tr.sel td{background:#142040}
 .tog-all{font-size:10px;color:#7a90b0;background:#0e1628;border:1px solid #2a3f60;border-radius:4px;cursor:pointer;padding:2px 8px;font-family:'Courier New',monospace;transition:all .1s}
 .tog-all:hover{color:#c9d8f0;border-color:#4a7aaa}
 /* Detail panel */
-.det{position:fixed;left:0;right:0;bottom:0;height:70vh;border-top:2px solid #2a3f60;background:#090e1a;display:none;z-index:60;box-shadow:0 -10px 40px rgba(0,0,0,.55)}
+.det{position:fixed;left:0;right:0;bottom:0;height:76vh;border-top:2px solid #2a3f60;background:#090e1a;display:none;z-index:60;box-shadow:0 -10px 40px rgba(0,0,0,.55)}
 .det.open{display:flex;flex-direction:column}
-.dcols{flex:1;overflow-y:auto;columns:4 300px;column-gap:0;column-rule:1px solid #131e30}
-.dcols>*{break-inside:avoid}
-@media(max-width:1250px){.dcols{columns:3 280px}}
+.det.max{height:96vh}
+.dcols{flex:1;overflow-y:auto;overflow-x:hidden;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));align-content:start;align-items:start;gap:0}
+.dcols .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.dcols .ds-wide .g2{grid-template-columns:repeat(4,minmax(0,1fr))}
+.dcols>*{border-right:1px solid #131e30;border-bottom:1px solid #131e30;min-width:0}
+.dcols .ds-wide{grid-column:span 2}
+@media(max-width:900px){.dcols .ds-wide{grid-column:span 1}}
 .dhd{padding:10px 14px;border-bottom:1px solid #131e30;display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;background:#090e1a;z-index:3}
 .dsym{font-weight:700;font-size:15px;color:#e8eeff}.dnm{font-size:10px;color:#6a80a0;margin-top:2px}
 .xb{background:none;border:none;cursor:pointer;font-size:18px;color:#6a80a0;line-height:1}.xb:hover{color:#c9d8f0}
-.ds{padding:8px 14px;border-bottom:1px solid #131e30}
-.dr{display:flex;justify-content:space-between;padding:3px 0;font-size:11px;gap:8px}
+.ds{padding:6px 12px;border-bottom:1px solid #131e30}
+.dr{display:flex;justify-content:space-between;padding:1.5px 0;font-size:11px;gap:8px}
 .dr .k{color:#7a90b0;flex-shrink:0}.dr .v{color:#c9d8f0;font-weight:600;text-align:right;overflow:hidden;text-overflow:ellipsis}
-.dsh{font-size:9.5px;color:#7a90b0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;font-weight:600}
+.dsh{font-size:9.5px;color:#7a90b0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;font-weight:600}
 /* Grille compacte 2 colonnes pour Marché & Signaux */
-.g2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.g2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
 @media(max-width:1000px){.g2{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .g2 .dr{flex-direction:column;align-items:flex-start;gap:2px;padding:5px 8px;background:#0c1424;border:1px solid #131e30;border-radius:7px}
 .g2 .dr .k{font-size:8.5px;text-transform:uppercase;letter-spacing:.4px;color:#5f7595}
@@ -440,9 +444,15 @@ th.sortable span{font-size:9px;color:#4ade80;margin-left:2px}
         <div class="dsym" id="dsy">—</div>
         <div class="dnm" id="dn2">—</div>
         <button class="copy-btn" id="dCopyBtn" style="margin-top:4px" onclick="copyAddr(sel,this)">📋 Copier l'adresse</button>
+        <div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap">
+          <a id="dLnkBubble" href="#" target="_blank" class="social-lnk" title="Bubblemaps — clusters de wallets liés" style="color:#38bdf8;background:#0ea5e915;border-color:#0ea5e950">🫧 Bubblemaps</a>
+          <a id="dLnkGmgn" href="#" target="_blank" class="social-lnk" style="color:#a78bfa;background:#7c3aed15;border-color:#7c3aed50">GMGN</a>
+          <a id="dLnkSolscan" href="#" target="_blank" class="social-lnk" style="color:#7ab8f5;background:#1d4ed815;border-color:#1d4ed850">Solscan</a>
+        </div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
         <div style="display:flex;gap:6px">
+          <button class="xb" id="dMaxBtn" title="Agrandir le panneau (tout voir sans défiler)" onclick="toggleDetMax()" style="font-size:13px">⛶</button>
           <button class="xb" id="dRefreshBtn" title="Rafraîchir les données maintenant (auto toutes les 15 s)" onclick="refreshDet(true)" style="font-size:13px">🔄</button>
           <button class="xb" onclick="closeD()">×</button>
         </div>
@@ -468,12 +478,12 @@ th.sortable span{font-size:9px;color:#4ade80;margin-left:2px}
       <div class="dsh">Évolution prix (session)</div>
       <div id="dChart"></div>
     </div>
-    <div class="ds">
+    <div class="ds ds-wide">
       <div class="dsh">Chart TradingView</div>
       <button class="tbtn" id="tvBtn" style="width:100%;padding:7px" onclick="toggleTvChart()">📈 Afficher le chart</button>
       <div id="tvWrap" style="margin-top:8px"></div>
     </div>
-    <div class="ds">
+    <div class="ds ds-wide">
       <div class="dsh">Signaux</div>
       <div class="g2">
       <div class="dr"><span class="k">Score de risque</span><span class="v" id="drisk">—</span></div>
@@ -578,7 +588,7 @@ th.sortable span{font-size:9px;color:#4ade80;margin-left:2px}
   <a href="https://x.com/DLMMRadar" target="_blank" style="color:#7ab8f5;text-decoration:none">𝕏 @DLMMRadar</a>
   <a href="https://github.com/DLMMRadar/dlmm-radar" target="_blank" style="color:#a78bfa;text-decoration:none">GitHub ↗</a>
   <span>Dons SOL : <span style="font-family:'Courier New',monospace;color:#c9d8f0;cursor:pointer" onclick="copyAddr('Em5aKcZ6VvmFnYmAcUDCodkoiBokGGSYabhFRwh9rb3A',this)" title="Cliquer pour copier l'adresse complète">Em5aK…9rb3A 📋</span></span>
-  <span style="color:#2f3d5c">build-2026-08-05b</span>
+  <span style="color:#2f3d5c">build-2026-08-05c</span>
   <span style="margin-left:auto">Pas un conseil financier — l'outil trie, vous décidez.</span>
 </div>
 
@@ -697,6 +707,10 @@ function renderPosition(t){
   const p=positions[t.address];
   const view=document.getElementById('dPosView');
   const buyIn=document.getElementById('dPosBuyIn'), solIn=document.getElementById('dPosSolIn');
+  {const _b=document.getElementById('dLnkBubble'),_g=document.getElementById('dLnkGmgn'),_s=document.getElementById('dLnkSolscan');
+   if(_b)_b.href='https://app.bubblemaps.io/sol/token/'+t.address;
+   if(_g)_g.href='https://gmgn.ai/sol/token/'+t.address;
+   if(_s)_s.href='https://solscan.io/token/'+t.address;}
   const curP=parseFloat(t.priceUsd);
   const curBtn=document.getElementById('dPosCurBtn');
   if(curP&&isFinite(curP)){buyIn.dataset.cur=t.priceUsd;if(curBtn){curBtn.style.display='';curBtn.title='Remplir avec le prix actuel : '+fpr(t.priceUsd);}}
@@ -2687,6 +2701,20 @@ function selT(addr){
   loadFibBlock(t);
   startDetRefresh();
 }
+
+function toggleDetMax(){
+  const dp=document.getElementById('dp');
+  const on=!dp.classList.contains('max');
+  dp.classList.toggle('max',on);
+  try{localStorage.setItem('meme_detmax',on?'1':'0');}catch(e){}
+  const b=document.getElementById('dMaxBtn');
+  if(b){b.textContent=on?'⛶':'⛶';b.style.color=on?'#4ade80':'';b.title=on?'Réduire le panneau':'Agrandir le panneau (tout voir sans défiler)';}
+}
+(function(){try{if(localStorage.getItem('meme_detmax')==='1'){
+  const dp=document.getElementById('dp');if(dp)dp.classList.add('max');
+  const b=document.getElementById('dMaxBtn');if(b)b.style.color='#4ade80';
+}}catch(e){}})();
+
 function fillD(t){
   const addr=t.address;
   document.getElementById('dsy').textContent=t.symbol;
@@ -3513,6 +3541,7 @@ var I18N_X={
 // — divers —
 "Prix d'achat invalide":"Invalid buy price","abonnés":"followers","vendeurs":"sellers","vendeurs (1h)":"sellers (1h)",
 "📡 À propos":"📡 About",
+"Agrandir le panneau (tout voir sans défiler)":"Expand panel (see everything without scrolling)","Réduire le panneau":"Shrink panel",
 "🫧 Bubblemaps":"🫧 Bubblemaps","Bubblemaps — clusters de wallets liés":"Bubblemaps — linked wallet clusters",
 "🔥 Pools chauds":"🔥 Hot pools","🔥 Pools chauds ✓":"🔥 Hot pools ✓","🔥 Source pools chauds":"🔥 Hot pools source",
 "Ajouter aux sources les tokens dont le pool DLMM rémunère le mieux en ce moment (fees/TVL 1h, Meteora)":"Add tokens whose DLMM pool pays best right now (1h fee/TVL, Meteora) to the scan sources",
