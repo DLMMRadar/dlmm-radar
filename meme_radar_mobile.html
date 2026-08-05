@@ -280,6 +280,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
         <button class="set-btn" id="notifBtn" onclick="requestNotif()" style="width:100%">🔔 Activer les notifications</button>
       </div>
       <div class="set-row" style="flex-wrap:wrap;gap:8px;margin-top:6px">
+        <label style="font-size:11px;color:#c9d8f0"><input type="checkbox" id="hotPoolsChk" onchange="toggleHotPools()"> 🔥 Source pools chauds</label>
         <label style="font-size:11px;color:#c9d8f0"><input type="checkbox" id="ncTakeoff" onchange="setNotifCat('takeoff',this.checked)"> 🚀 Décollage</label>
         <label style="font-size:11px;color:#c9d8f0"><input type="checkbox" id="ncTrending" onchange="setNotifCat('trending',this.checked)"> 📈 Trending</label>
         <label style="font-size:11px;color:#c9d8f0"><input type="checkbox" id="ncDlmm" onchange="setNotifCat('dlmm',this.checked)"> 🟡 DLMM</label>
@@ -310,7 +311,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
         <a href="https://github.com/DLMMRadar/dlmm-radar" target="_blank" style="color:#a78bfa;text-decoration:none;font-size:12px">GitHub ↗</a>
       </div>
       <p style="font-size:10px;color:#6a80a0;line-height:1.5;margin-top:6px">Dons SOL : <span style="font-family:monospace;color:#c9d8f0;word-break:break-all" onclick="copyAddr('Em5aKcZ6VvmFnYmAcUDCodkoiBokGGSYabhFRwh9rb3A',this)">Em5aKcZ6VvmFnYmAcUDCodkoiBokGGSYabhFRwh9rb3A 📋</span></p>
-      <p style="font-size:9px;color:#2f3d5c;margin-top:4px">build-2026-08-05a</p>
+      <p style="font-size:9px;color:#2f3d5c;margin-top:4px">build-2026-08-05b</p>
       <p style="font-size:10px;color:#6a80a0;line-height:1.5;margin-top:4px">Pas un conseil financier — l'outil trie, vous décidez.</p>
     </div>
     <div class="set-card">
@@ -835,6 +836,11 @@ async function collectMints(profiles, boosts, trend){
   boostArr.filter(b=>b.chainId==='solana').forEach(b=>{
     if(b.tokenAddress&&!mints.has(b.tokenAddress))
       mints.set(b.tokenAddress,{links:[],fromProfile:false});
+  });
+
+  // 2 bis. Pools DLMM qui paient (Meteora) — source orientée LP
+  Object.keys(hotPools).forEach(a=>{
+    if(!mints.has(a)) mints.set(a,{links:[],fromProfile:false});
   });
 
   // 3. Jupiter Trending (top 50)
@@ -1804,6 +1810,7 @@ async function checkSmartNotifs(tok,now){
 }
 
 function initNotifUI(){
+  try{const hc=document.getElementById('hotPoolsChk');if(hc)hc.checked=hotPoolsOn;}catch(e){}
   const map={ncTakeoff:'takeoff',ncTrending:'trending',ncDlmm:'dlmm',ncFib:'fib',ncWake:'wakeup'};
   for(const id in map){const el=document.getElementById(id);if(el)el.checked=!!notifCats[map[id]];}
   const c=document.getElementById('ncCap');if(c)c.value=String(notifCap);
@@ -1996,6 +2003,45 @@ function importConfig(input){
 }
 // ── Main scan ─────────────────────────────────────────────────────────────────
 
+
+// ── Source de découverte : pools DLMM qui paient en ce moment ────────────────
+// Classement par ratio fees/TVL sur 1h (repli : tri par TVL puis classement local).
+// Complémentaire des sources "nouveaux tokens" : repère les pools déjà actifs.
+const QUOTE_MINTS=new Set(['So11111111111111111111111111111111111111112',
+  'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+  'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB']);
+let hotPools={}; // mint → {ratio1h, pool, tvl}
+async function fetchHotPools(){
+  if(!hotPoolsOn)return;
+  let d=await get('https://dlmm.datapi.meteora.ag/pools?page_size=50&sort_by=fee_tvl_ratio_1h:desc',9000);
+  let pools=d&&Array.isArray(d.data)?d.data:null;
+  if(!pools){
+    d=await get('https://dlmm.datapi.meteora.ag/pools?page_size=50&sort_by=tvl:desc',9000);
+    pools=d&&Array.isArray(d.data)?d.data:[];
+  }
+  const out={};
+  pools.forEach(p=>{
+    if(p.is_blacklisted)return;
+    const r=p.fee_tvl_ratio&&p.fee_tvl_ratio['1h'];
+    if(r==null||+r<=0)return;
+    [p.token_x,p.token_y].forEach(tk=>{
+      const a=tk&&tk.address;
+      if(!a||QUOTE_MINTS.has(a))return;
+      if(!out[a]||+r>out[a].ratio1h)out[a]={ratio1h:+r,pool:p.address,tvl:p.tvl};
+    });
+  });
+  if(Object.keys(out).length)hotPools=out;
+}
+let hotPoolsOn=true;
+try{hotPoolsOn=localStorage.getItem('meme_hotpools')!=='0';}catch(e){}
+function toggleHotPools(){
+  hotPoolsOn=!hotPoolsOn;
+  try{localStorage.setItem('meme_hotpools',hotPoolsOn?'1':'0');}catch(e){}
+  const b=document.getElementById('hotPoolsBtn');
+  if(b){b.style.borderColor=hotPoolsOn?'#fde68a':'';b.style.color=hotPoolsOn?'#fde68a':'';
+    b.textContent=hotPoolsOn?'🔥 Pools chauds ✓':'🔥 Pools chauds';}
+}
+
 // ── Indice de viralité (0-100) — traction observable, HORS score de sécurité ──
 // Composantes : croissance followers 𝕏 (30) + trending GeckoTerminal (25)
 // + vélocité holders (25) + accélération volume/acheteurs (20).
@@ -2042,6 +2088,7 @@ function calcViral(t){
 
 async function runScan(){
   fetchTrending();
+  await fetchHotPools();
   scanCycle++;
   setStat('warn','Scan en cours — collecte des sources…');
   try{
@@ -2255,6 +2302,7 @@ async function doManual(){
       `🔗 https://rugcheck.xyz/tokens/${addr}`,
       `🔗 https://app.meteora.ag/dlmm?search=${addr}`,
       `🔗 https://gmgn.ai/sol/token/${addr}`,
+      `🫧 https://app.bubblemaps.io/sol/token/${addr}`,
     ].join('\n');
     tokens=[tok,...tokens.filter(x=>x.address!==addr)];
     window._manualTok=tok;
@@ -2465,7 +2513,7 @@ function tokenCard(t){
     </div>
     <div class="dots">${dots}</div>
     <div class="card-actions" onclick="event.stopPropagation()">
-      <a class="ca-btn ca-gmgn" href="https://gmgn.ai/sol/token/${t.address}" target="_blank">GMGN</a>
+      <a class="ca-btn ca-gmgn" href="https://gmgn.ai/sol/token/${t.address}" target="_blank">GMGN</a><a class="ca-btn" href="https://app.bubblemaps.io/sol/token/${t.address}" target="_blank" style="color:#38bdf8;border-color:#0ea5e950">🫧 Bubblemaps</a>
       ${t.twitterUrl?`<a class="ca-btn" style="flex:0 0 auto;color:#7ab8f5;border-color:#0369a150" href="${t.twitterUrl}" target="_blank">𝕏</a>`:''}
       ${t.websiteUrl?`<a class="ca-btn" style="flex:0 0 auto" href="${t.websiteUrl}" target="_blank">🌐</a>`:''}
       <button class="ca-btn" onclick="copyAddr('${t.address}',this)">📋 Copier</button>
@@ -2519,7 +2567,7 @@ function renderAlerts(){
       </div>
       ${crits?`<div class="card-badges" style="margin-top:6px">${crits}</div>`:''}
       <div class="card-actions" onclick="event.stopPropagation()">
-        <a class="ca-btn ca-gmgn" href="https://gmgn.ai/sol/token/${t.address}" target="_blank">GMGN</a>
+        <a class="ca-btn ca-gmgn" href="https://gmgn.ai/sol/token/${t.address}" target="_blank">GMGN</a><a class="ca-btn" href="https://app.bubblemaps.io/sol/token/${t.address}" target="_blank" style="color:#38bdf8;border-color:#0ea5e950">🫧 Bubblemaps</a>
         <a class="ca-btn" href="${t.url}" target="_blank">DexScreener ↗</a>
       </div>
     </div>`;
@@ -3083,6 +3131,9 @@ var I18N_X={
 // — divers —
 "Prix d'achat invalide":"Invalid buy price","abonnés":"followers","vendeurs":"sellers","vendeurs (1h)":"sellers (1h)",
 "📡 À propos":"📡 About",
+"🫧 Bubblemaps":"🫧 Bubblemaps","Bubblemaps — clusters de wallets liés":"Bubblemaps — linked wallet clusters",
+"🔥 Pools chauds":"🔥 Hot pools","🔥 Pools chauds ✓":"🔥 Hot pools ✓","🔥 Source pools chauds":"🔥 Hot pools source",
+"Ajouter aux sources les tokens dont le pool DLMM rémunère le mieux en ce moment (fees/TVL 1h, Meteora)":"Add tokens whose DLMM pool pays best right now (1h fee/TVL, Meteora) to the scan sources",
 "🔔 Notifications activées ✓":"🔔 Notifications on ✓","🔔 Notifications désactivées":"🔔 Notifications off",
 "🔕 Notifications bloquées":"🔕 Notifications blocked","🔕 Notifications : https requis":"🔕 Notifications: https required",
 "🔕 Non supporté":"🔕 Not supported","🔕 Bloquées par le navigateur":"🔕 Blocked by the browser",

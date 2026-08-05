@@ -44,6 +44,7 @@ On top of the score, a **risk index** aggregates penalties, plus:
 - ♻️ **Recycled ticker detection**
 - 🟡 **Meteora DLMM pool metrics** — bin step, base fee, TVL, and the 24h **fee/TVL ratio** straight from Meteora's official API, so you know whether the pool actually pays LPs before you open it
 - 🔥 **Virality index (0–100)** — X follower growth, GeckoTerminal trending rank, holder velocity and volume acceleration, combined into one number. Deliberately **kept out of the safety score**: the 12 checks tell you if a token is clean, the flame tells you if it's hot. A viral token can still be a trap.
+- 🫧 **One-click Bubblemaps** — direct link to the token's wallet-cluster map, to eyeball connected holders the automated checks can't see
 - 📐 **Automatic Fibonacci retracement** — swing low → ATH computed from the pool's own candles, with the 23.6 / 38.2 / 50 / 61.8 / 78.6 levels and where the price sits right now. A market convention, not a prediction.
 - 𝕏 **Social signals** — account link, mentions, community size (informational only)
 - Organic score & suspicious-audit flag from Jupiter
@@ -53,6 +54,12 @@ On top of the score, a **risk index** aggregates penalties, plus:
 [DexScreener](https://dexscreener.com) · [RugCheck](https://rugcheck.xyz) · [Helius](https://helius.dev) · [Jupiter](https://jup.ag) · [GeckoTerminal](https://geckoterminal.com) · [GoPlus](https://gopluslabs.io)
 
 All free public endpoints. The only key you need is a **free Helius API key** (used for unique-holder counts and dev wallet history).
+
+### Two ways in
+
+Most scanners start from *new tokens* and check them. This one does that — and the reverse.
+
+The **🔥 hot pools** source queries Meteora for the DLMM pools paying the most **right now** (1h fee/TVL ratio) and feeds those tokens into the scan. That's the LP's angle: start from the pool that's earning, not from the coin that just launched. Toggle it off if you only want fresh launches.
 
 ## Getting started
 
@@ -116,7 +123,7 @@ Ce n'est **pas un outil miracle** : c'est un outil parmi d'autres. Il ne trouver
 
 **Ou en local :** téléchargez `meme_radar.html` (ordinateur) ou `meme_radar_mobile.html` (mobile) et ouvrez-le dans Chrome. Dans les deux cas, collez votre clé Helius gratuite ([helius.dev](https://helius.dev)) dans les réglages. L'interface est disponible en français et en anglais (bouton 🌐 FR/EN).
 
-S'ajoutent un **indice de viralité 0–100** (croissance des abonnés 𝕏, trending GeckoTerminal, vélocité holders, accélération du volume — volontairement séparé du score de sécurité), un **retracement Fibonacci automatique** calculé sur les chandeliers du pool, les **métriques du pool DLMM Meteora** (bin step, base fee, TVL, ratio fees/TVL 24h), des **tranches d'âge** configurables (6–12h, 12–24h…) et **cinq types de notifications** avec plafond horaire anti-saturation.
+S'ajoutent un **indice de viralité 0–100** (croissance des abonnés 𝕏, trending GeckoTerminal, vélocité holders, accélération du volume — volontairement séparé du score de sécurité), un **retracement Fibonacci automatique** calculé sur les chandeliers du pool, les **métriques du pool DLMM Meteora** (bin step, base fee, TVL, ratio fees/TVL 24h), des **tranches d'âge** configurables (6–12h, 12–24h…), un lien direct **Bubblemaps** par token et **cinq types de notifications** avec plafond horaire anti-saturation. Une source de découverte **🔥 pools chauds** part des pools DLMM les plus rémunérateurs de la dernière heure plutôt que des tokens fraîchement lancés — l'angle du LP.
 
 Les 12 critères couvrent : autorités mint/freeze révoquées, LP verrouillée, détection de bundles, nombre et croissance des holders réels, concentration du top 10, part des snipers/insiders, présence d'un pool DLMM, âge et comportement du wallet du dev, deployers en série fichés, détection des tokens « tribute ». S'y ajoutent un indice de risque, une heuristique de wash trading, un croisement de sécurité GoPlus/RugCheck, la détection de tickers recyclés et des signaux sociaux 𝕏.
 

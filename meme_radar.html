@@ -241,6 +241,7 @@ th.sortable span{font-size:9px;color:#4ade80;margin-left:2px}
   <span class="env-tag" id="envTag">⟳</span>
   <div class="sp"></div>
   <button class="btn" id="notifBtn" onclick="requestNotif()" style="padding:5px 9px;font-size:11px">🔔 Activer notifs</button>
+  <button class="tbtn" id="hotPoolsBtn" onclick="toggleHotPools()" title="Ajouter aux sources les tokens dont le pool DLMM rémunère le mieux en ce moment (fees/TVL 1h, Meteora)">🔥 Pools chauds</button>
   <span class="lbl" title="Catégories de notifications">Notifs :</span>
   <label class="lbl" style="cursor:pointer" title="Bond de viralité sur un token au score correct"><input type="checkbox" id="ncTakeoff" onchange="setNotifCat('takeoff',this.checked)"> 🚀 Décollage</label>
   <label class="lbl" style="cursor:pointer" title="Entrée dans le trending GeckoTerminal"><input type="checkbox" id="ncTrending" onchange="setNotifCat('trending',this.checked)"> 📈 Trending</label>
@@ -577,7 +578,7 @@ th.sortable span{font-size:9px;color:#4ade80;margin-left:2px}
   <a href="https://x.com/DLMMRadar" target="_blank" style="color:#7ab8f5;text-decoration:none">𝕏 @DLMMRadar</a>
   <a href="https://github.com/DLMMRadar/dlmm-radar" target="_blank" style="color:#a78bfa;text-decoration:none">GitHub ↗</a>
   <span>Dons SOL : <span style="font-family:'Courier New',monospace;color:#c9d8f0;cursor:pointer" onclick="copyAddr('Em5aKcZ6VvmFnYmAcUDCodkoiBokGGSYabhFRwh9rb3A',this)" title="Cliquer pour copier l'adresse complète">Em5aK…9rb3A 📋</span></span>
-  <span style="color:#2f3d5c">build-2026-08-05a</span>
+  <span style="color:#2f3d5c">build-2026-08-05b</span>
   <span style="margin-left:auto">Pas un conseil financier — l'outil trie, vous décidez.</span>
 </div>
 
@@ -1169,6 +1170,11 @@ async function collectMints(profiles, boosts, trend){
   boostArr.filter(b=>b.chainId==='solana').forEach(b=>{
     if(b.tokenAddress&&!mints.has(b.tokenAddress))
       mints.set(b.tokenAddress,{links:[],fromProfile:false});
+  });
+
+  // 2 bis. Pools DLMM qui paient (Meteora) — source orientée LP
+  Object.keys(hotPools).forEach(a=>{
+    if(!mints.has(a)) mints.set(a,{links:[],fromProfile:false});
   });
 
   // 3. Jupiter Trending (top 50)
@@ -2154,6 +2160,7 @@ async function checkSmartNotifs(tok,now){
 }
 
 function initNotifUI(){
+  try{const hb=document.getElementById('hotPoolsBtn');if(hb&&hotPoolsOn){hb.style.borderColor='#fde68a';hb.style.color='#fde68a';hb.textContent='🔥 Pools chauds ✓';}}catch(e){}
   const map={ncTakeoff:'takeoff',ncTrending:'trending',ncDlmm:'dlmm',ncFib:'fib',ncWake:'wakeup'};
   for(const id in map){const el=document.getElementById(id);if(el)el.checked=!!notifCats[map[id]];}
   const c=document.getElementById('ncCap');if(c)c.value=String(notifCap);
@@ -2351,6 +2358,45 @@ function importConfig(input){
 }
 // ── Main scan ─────────────────────────────────────────────────────────────────
 
+
+// ── Source de découverte : pools DLMM qui paient en ce moment ────────────────
+// Classement par ratio fees/TVL sur 1h (repli : tri par TVL puis classement local).
+// Complémentaire des sources "nouveaux tokens" : repère les pools déjà actifs.
+const QUOTE_MINTS=new Set(['So11111111111111111111111111111111111111112',
+  'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+  'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB']);
+let hotPools={}; // mint → {ratio1h, pool, tvl}
+async function fetchHotPools(){
+  if(!hotPoolsOn)return;
+  let d=await get('https://dlmm.datapi.meteora.ag/pools?page_size=50&sort_by=fee_tvl_ratio_1h:desc',9000);
+  let pools=d&&Array.isArray(d.data)?d.data:null;
+  if(!pools){
+    d=await get('https://dlmm.datapi.meteora.ag/pools?page_size=50&sort_by=tvl:desc',9000);
+    pools=d&&Array.isArray(d.data)?d.data:[];
+  }
+  const out={};
+  pools.forEach(p=>{
+    if(p.is_blacklisted)return;
+    const r=p.fee_tvl_ratio&&p.fee_tvl_ratio['1h'];
+    if(r==null||+r<=0)return;
+    [p.token_x,p.token_y].forEach(tk=>{
+      const a=tk&&tk.address;
+      if(!a||QUOTE_MINTS.has(a))return;
+      if(!out[a]||+r>out[a].ratio1h)out[a]={ratio1h:+r,pool:p.address,tvl:p.tvl};
+    });
+  });
+  if(Object.keys(out).length)hotPools=out;
+}
+let hotPoolsOn=true;
+try{hotPoolsOn=localStorage.getItem('meme_hotpools')!=='0';}catch(e){}
+function toggleHotPools(){
+  hotPoolsOn=!hotPoolsOn;
+  try{localStorage.setItem('meme_hotpools',hotPoolsOn?'1':'0');}catch(e){}
+  const b=document.getElementById('hotPoolsBtn');
+  if(b){b.style.borderColor=hotPoolsOn?'#fde68a':'';b.style.color=hotPoolsOn?'#fde68a':'';
+    b.textContent=hotPoolsOn?'🔥 Pools chauds ✓':'🔥 Pools chauds';}
+}
+
 // ── Indice de viralité (0-100) — traction observable, HORS score de sécurité ──
 // Composantes : croissance followers 𝕏 (30) + trending GeckoTerminal (25)
 // + vélocité holders (25) + accélération volume/acheteurs (20).
@@ -2397,6 +2443,7 @@ function calcViral(t){
 
 async function runScan(){
   fetchTrending();
+  await fetchHotPools();
   scanCycle++;
   setStat('warn','Scan en cours — collecte des sources…');
   try{
@@ -2537,6 +2584,7 @@ function render(){
         <div style="display:flex;gap:3px;margin-top:2px;align-items:center;flex-wrap:wrap">
           <button class="copy-btn" onclick="event.stopPropagation();copyAddr('${t.address}',this)">📋 ${t.address.slice(0,4)}…${t.address.slice(-4)}</button>
           <a href="https://gmgn.ai/sol/token/${t.address}" target="_blank" onclick="event.stopPropagation()" class="social-lnk" style="color:#a78bfa;background:#7c3aed15;border-color:#7c3aed50;font-size:9px">GMGN</a>
+          <a href="https://app.bubblemaps.io/sol/token/${t.address}" target="_blank" onclick="event.stopPropagation()" class="social-lnk" title="Bubblemaps — clusters de wallets liés" style="color:#38bdf8;background:#0ea5e915;border-color:#0ea5e950;font-size:9px">🫧</a>
           ${t.twitterUrl?`<a href="${t.twitterUrl}" target="_blank" onclick="event.stopPropagation()" class="social-lnk sl-x">𝕏</a>`:''}
           ${t.websiteUrl?`<a href="${t.websiteUrl}" target="_blank" onclick="event.stopPropagation()" class="social-lnk sl-web">🌐</a>`:''}
         </div>
@@ -3465,6 +3513,9 @@ var I18N_X={
 // — divers —
 "Prix d'achat invalide":"Invalid buy price","abonnés":"followers","vendeurs":"sellers","vendeurs (1h)":"sellers (1h)",
 "📡 À propos":"📡 About",
+"🫧 Bubblemaps":"🫧 Bubblemaps","Bubblemaps — clusters de wallets liés":"Bubblemaps — linked wallet clusters",
+"🔥 Pools chauds":"🔥 Hot pools","🔥 Pools chauds ✓":"🔥 Hot pools ✓","🔥 Source pools chauds":"🔥 Hot pools source",
+"Ajouter aux sources les tokens dont le pool DLMM rémunère le mieux en ce moment (fees/TVL 1h, Meteora)":"Add tokens whose DLMM pool pays best right now (1h fee/TVL, Meteora) to the scan sources",
 "Notifs :":"Notifs:","🚀 Décollage":"🚀 Takeoff","📈 Trending":"📈 Trending","🟡 DLMM":"🟡 DLMM",
 "📐 Fib":"📐 Fib","⏰ Réveil":"⏰ Wake-up","max/h":"max/h","Plafond par heure":"Cap per hour",
 "Catégories de notifications":"Notification categories",
