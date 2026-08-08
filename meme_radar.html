@@ -185,6 +185,8 @@ th.sortable span{font-size:9px;color:#4ade80;margin-left:2px}
 /* Toast copy */
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:#1e3050;color:#4ade80;border:1px solid #4ade8060;border-radius:6px;padding:6px 16px;font-size:11px;font-family:'Courier New',monospace;opacity:0;transition:all .2s;z-index:999;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.tkimg{width:22px;height:22px;border-radius:50%;object-fit:cover;background:#16213a;border:1px solid #2a3f60;flex-shrink:0}
+.tkimg-lg{width:40px;height:40px;border-radius:50%;object-fit:cover;background:#16213a;border:1px solid #2a3f60}
 </style>
 </head>
 <body>
@@ -440,6 +442,7 @@ th.sortable span{font-size:9px;color:#4ade80;margin-left:2px}
   <!-- Detail -->
   <div class="det" id="dp">
     <div class="dhd">
+      <img id="dImg" class="tkimg-lg" src="" alt="" style="display:none;margin-right:10px">
       <div>
         <div class="dsym" id="dsy">—</div>
         <div class="dnm" id="dn2">—</div>
@@ -589,7 +592,7 @@ th.sortable span{font-size:9px;color:#4ade80;margin-left:2px}
   <a href="https://x.com/DLMMRadar" target="_blank" style="color:#7ab8f5;text-decoration:none">𝕏 @DLMMRadar</a>
   <a href="https://github.com/DLMMRadar/dlmm-radar" target="_blank" style="color:#a78bfa;text-decoration:none">GitHub ↗</a>
   <span>Dons SOL : <span style="font-family:'Courier New',monospace;color:#c9d8f0;cursor:pointer" onclick="copyAddr('Em5aKcZ6VvmFnYmAcUDCodkoiBokGGSYabhFRwh9rb3A',this)" title="Cliquer pour copier l'adresse complète">Em5aK…9rb3A 📋</span></span>
-  <span style="color:#2f3d5c">build-2026-08-05d</span>
+  <span style="color:#2f3d5c">build-2026-08-08a</span>
   <span style="margin-left:auto">Pas un conseil financier — l'outil trie, vous décidez.</span>
 </div>
 
@@ -708,6 +711,8 @@ function renderPosition(t){
   const p=positions[t.address];
   const view=document.getElementById('dPosView');
   const buyIn=document.getElementById('dPosBuyIn'), solIn=document.getElementById('dPosSolIn');
+  {const _im=document.getElementById('dImg');
+   if(_im){if(t.img){_im.src=t.img;_im.style.display='';_im.onerror=function(){this.style.display='none';};}else{_im.style.display='none';}}}
   {const _b=document.getElementById('dLnkBubble'),_g=document.getElementById('dLnkGmgn'),_s=document.getElementById('dLnkSolscan');
    if(_b)_b.href='https://app.bubblemaps.io/sol/token/'+t.address;
    if(_g)_g.href='https://gmgn.ai/sol/token/'+t.address;
@@ -861,6 +866,18 @@ function toggleDlmmFirst(){
     btn.textContent='🟡 DLMM en tête';
   }
   render();
+}
+
+
+// Tri par colonne : clic = trier, re-clic = inverser le sens.
+// (Colonnes "risque" et "âge" : un ordre croissant est plus utile par défaut.)
+function sortBy(col){
+  if(sortCol===col){sortDir=-sortDir;}
+  else{sortCol=col;sortDir=(col==='risk'||col==='age')?1:-1;}
+  document.querySelectorAll('th.sortable span[id^="s-"]').forEach(s=>s.textContent='');
+  const ind=document.getElementById('s-'+col);
+  if(ind)ind.textContent=sortDir===-1?'▼':'▲';
+  render();upd();
 }
 
 // Sort — avec priorité DLMM optionnelle
@@ -2030,6 +2047,7 @@ function mkTok(pump,dex,rug,now,dlmm,boosts,trend,holderCount=null,devInfo=null,
     rugScore:rug?.score_normalised??rug?.score,
     scores:sc,total,
     url:pair?.url||`https://dexscreener.com/solana/${mint}`,
+    img:pair?.info?.imageUrl||null,
     twitterUrl:null, websiteUrl:null,
     devAddr:devInfo?.devAddr||null,
     devPct:devInfo?.devPct||null,
@@ -2594,8 +2612,13 @@ function render(){
     return`
     <tr onclick="selT('${t.address}')" class="${sel===t.address?'sel':''}">
       <td>
-        <div class="sym">${esc(t.symbol)}${isPinned?'<span style="color:#fbbf24;margin-left:3px">📍</span>':''}</div>
-        <div class="tn">${esc(t.name).slice(0,15)}</div>
+        <div style="display:flex;gap:7px;align-items:center">
+          ${t.img?`<img class="tkimg" src="${t.img}" loading="lazy" onerror="this.style.display='none'" alt="">`:''}
+          <div style="min-width:0">
+            <div class="sym">${esc(t.symbol)}${isPinned?'<span style="color:#fbbf24;margin-left:3px">📍</span>':''}</div>
+            <div class="tn">${esc(t.name).slice(0,15)}</div>
+          </div>
+        </div>
         <div style="display:flex;gap:3px;margin-top:2px;align-items:center;flex-wrap:wrap">
           <button class="copy-btn" onclick="event.stopPropagation();copyAddr('${t.address}',this)">📋 ${t.address.slice(0,4)}…${t.address.slice(-4)}</button>
           <a href="https://gmgn.ai/sol/token/${t.address}" target="_blank" onclick="event.stopPropagation()" class="social-lnk" style="color:#a78bfa;background:#7c3aed15;border-color:#7c3aed50;font-size:9px">GMGN</a>
@@ -3136,7 +3159,35 @@ function exportCard(){
   txt('Not financial advice — the tool sorts, you decide.',1150,H-22,'#5a6a90',14,'');
   c.textAlign='left';
 
-  cv.toBlob(function(b){
+  function finish(){
+    cv.toBlob(function(b){
+      if(!b)return;
+      const url=URL.createObjectURL(b);
+      const a=document.createElement('a');
+      a.href=url;a.download=(t.symbol||'token').replace(/[^A-Za-z0-9_-]/g,'')+'-memeradar.png';
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),4000);
+    },'image/png');
+  }
+  // pastille du token (si l'image est accessible en CORS ; sinon on s'en passe)
+  if(t.img){
+    const im=new Image();
+    im.crossOrigin='anonymous';
+    im.onload=function(){
+      try{
+        c.save();c.beginPath();c.arc(1065,300,54,0,7);c.clip();
+        c.drawImage(im,1011,246,108,108);c.restore();
+        c.strokeStyle='#2a3f60';c.lineWidth=2;c.beginPath();c.arc(1065,300,54,0,7);c.stroke();
+      }catch(e){}
+      finish();
+    };
+    im.onerror=function(){finish();};
+    im.src=t.img;
+    setTimeout(function(){if(!im.complete)finish();},2500);
+    return;
+  }
+  finish();
+  if(false)cv.toBlob(function(b){
     if(!b)return;
     const url=URL.createObjectURL(b);
     const a=document.createElement('a');
